@@ -1,0 +1,10 @@
+.env
+export_csv.py
+readme.md
+qdrant_storage
+notebooks/
+data/
+config/
+models/
+GenerateInstructionData/
+qa_output.jsonl

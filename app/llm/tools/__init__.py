@@ -1,0 +1,1 @@
+from .mrktsec_quotes_detail_tool import get_mrktsec_quotes_detail
