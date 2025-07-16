@@ -1,0 +1,1 @@
+0 22 * * * /bin/bash /app/pipeline.sh >> /var/log/pipeline.log 2>&1

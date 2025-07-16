@@ -1,0 +1,5 @@
+# Loại bỏ thư mục models
+models/
+# Loại bỏ file readme với ảnh
+readme.md
+sentiment_pipeline.jpg
