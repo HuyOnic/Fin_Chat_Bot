@@ -2,7 +2,6 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForSeque
 from langchain_community.llms import HuggingFacePipeline
 from optimum.onnxruntime import ORTModelForSequenceClassification, ORTModelForSeq2SeqLM
 import torch
-from openvino.runtime import Core
 from time import time
 import os, sys
 sys.path.append(os.path.join(os.path.abspath(__file__),".."))

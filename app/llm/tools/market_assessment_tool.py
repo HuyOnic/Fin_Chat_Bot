@@ -2,8 +2,6 @@
 import requests
 from pprint import pprint
 
-#API này đang bị lỗi, trả về '{"status":"SUCCESS","arg":null}'
-
 def get_market_assessment(secCd, contentType, language, jwt_token):
     url = "https://api-ai.goline.vn/api/public/chat-management/test"
     params = {
