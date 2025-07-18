@@ -1,5 +1,6 @@
 #http://10.10.3.31:7000/market/api/public/mrktsec-quotes-detail?secCd=SSI&contentType=lastPrice&language=VI
 import requests
+#Lỗi
 def get_margin_account_status(language, jwt_token):
     url = "https://api-ai.goline.vn/api/public/chat-management/test"
     params = {

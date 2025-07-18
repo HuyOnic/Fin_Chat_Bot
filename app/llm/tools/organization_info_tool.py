@@ -1,7 +1,7 @@
 #http://10.10.3.31:7000/market/api/public/mrktsec-quotes-detail?secCd=SSI&contentType=lastPrice&language=VI
 import requests
 from pprint import pprint
-# Thôn tin trả về null
+# Thôn tin trả về ở trường data bị "---"
 def get_organization_info(secCd, contentType, language, jwt_token):
     url = "https://api-ai.goline.vn/api/public/chat-management/test"
     params = {

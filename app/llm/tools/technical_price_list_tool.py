@@ -7,11 +7,7 @@ from pprint import pprint
 def get_top_sec_index(secCd, contentType, language, jwt_token):
     url = "https://api-ai.goline.vn/api/public/chat-management/test"
     params = {
-        "api": f'http://10.10.3.31:7000/market/api/public/technical-price-list? \
-                                                                            period="1M" \
-                                                                            &language={language} \
-                                                                            &secList={secCd} \
-                                                                            &contentType={contentType}'
+        "api": f'http://10.10.3.31:7000/market/api/public/technical-price-list?contentType=financial-analysis-stock_insight&period=1M&language=VI&secList=ACB'
         }
     headers = {
         "accept": "application/json, text/plain, */*",
