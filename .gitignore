@@ -8,3 +8,4 @@ config/
 models/
 GenerateInstructionData/
 qa_output.jsonl
+mini_instruction_data.jsonl
