@@ -1,3 +1,4 @@
+from ast import Continue
 from app.db.postgre import get_all_pending_preprocess, update_status, insert_chunked_news
 from app.db.qdrant import insert_vector, get_similar_vectors
 from app.utils.vectorizer import convert_to_vector
@@ -29,8 +30,10 @@ def check_and_update_duplicates(threshold: float):
     results = []
     for current_id, current_content, current_date, source in all_data:
         print(f"Đang kiểm tra bài viết ID {current_id}")
-        source_domain = source.split("//")[1].split("/")[0]
-
+        try:
+            source_domain = source.split("//")[1].split("/")[0]
+        except:
+            continue
         # Chunking current document
         chunks = chunking_document(current_content)
 
@@ -40,7 +43,7 @@ def check_and_update_duplicates(threshold: float):
 
             if similar_articles:
                 for duplicate_id, similarity_score in similar_articles:
-                    # update_status(current_id, 9)
+                    update_status(current_id, 9)
                     results.append({
                         "current_id": current_id,
                         "duplicate_id": duplicate_id,

@@ -6,6 +6,9 @@ notebooks/
 data/
 config/
 models/
-GenerateInstructionData/
+GenerateInstructionData/*.json
+GenerateInstructionData/*.jsonl
 qa_output.jsonl
 mini_instruction_data.jsonl
+__pycache__/
+*.py[cod]

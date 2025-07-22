@@ -191,5 +191,18 @@ def fetch_news_by_ids(ids: list[int]) -> list[dict]:
 
     return results
 
+def fetch_newest_info(news_date: int):
+    query = """
+        SELECT content 
+        FROM news 
+        WHERE news_date >= %s
+    """
+    with get_pg_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (news_date,))
+            results = cur.fetchall()
+    results = [result[0] for result in results]
+    return results
+
 if __name__=="__main__":
     create_chunked_news_tables()
