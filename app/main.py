@@ -2,7 +2,7 @@ from fastapi import FastAPI, Query
 from app.api.crawl import run_crawler
 from app.api.preprocess import check_and_update_duplicates
 from app.api.update_sentiment import update_sentiment
-from app.api.chatbot_engine import ask_bot, chat_bot, route_fn
+from app.api.chatbot_engine import ask_bot, chat_bot, route_fn, sentiment_news
 from pydantic import BaseModel
 
 class ChatRequest(BaseModel):
@@ -73,3 +73,12 @@ def route_question(req: ChatRequest):
                 "contentType": contentType}
     except Exception as e:
         return e
+    
+@app.post("/test_sentiment_analysis")
+def test_sentiment_news(req: ChatRequest):
+    try:
+        prompt = sentiment_news(req.message)
+        return {"message": prompt}
+    except Exception as e:
+        return e
+    
