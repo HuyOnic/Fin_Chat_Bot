@@ -11,8 +11,8 @@ MODEL_DIR = "BAAI/bge-m3"
 print(f"Đang load model từ: {MODEL_DIR}")
 
 try:
-    bert_model = SentenceTransformer(MODEL_DIR, device="cuda:1")
-    print("Model đã được load thành công!")
+    bert_model = SentenceTransformer(MODEL_DIR, device="cpu")
+    print("✅ Embedding Model đã được load thành công!")
 except Exception as e:
     print(f"Lỗi khi load model: {e}")
     raise

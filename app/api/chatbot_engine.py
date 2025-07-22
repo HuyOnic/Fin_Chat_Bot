@@ -2,23 +2,26 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
+import pandas as pd
 from time import time
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 
-from app.utils.vectorizer import convert_to_vector
 from app.db.qdrant import get_similar_vectors
 from app.db.postgre import fetch_news_by_ids
-
 from app.llm.prompt_builder import build_prompt, basic_system_prompt
 from app.retriever.hybrid_retriever import HybridRetriever
 from app.retriever.dense_retriever import DenseRetriever
 from app.retriever.sparse_retriever import SparseRetriever
-from app.db.postgre import SessionLocal
+from app.db.postgre import fetch_newest_info
 from app.db.qdrant import client
-from app.utils.vectorizer import bert_model
 from app.llm.router_agent import RouterAgent
 from app.llm.prompts import ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT, ANSWER_FINANCIAL_QUESTION_PROMPT
+from app.utils.vectorizer import convert_to_vector
+from app.utils.sentimenizer import sentiment_analysis
+from app.utils.sector_keywords import sector_keywords
+from app.utils.chunking import extract_sector_sentences
 load_dotenv()
 print("OpenAI client:", os.getenv("OPENAI_API_BASE_URL"), "Key:", os.getenv("OPEN_API_KEY"))
 llm = ChatOpenAI(
@@ -34,7 +37,9 @@ agent = RouterAgent(intent_tokenizer_ckt="models/phobert_tokenizer",
                     label_list_path="models/label_list_Balanced_Questions_Dataset.yaml",
                     api_call_lis_path="models/api_call_list.yaml",
                     use_onnx=False)
-print("Loaded Router Agent")
+print("✅ Loaded Router Agent")
+secCd_df = pd.read_csv("/home/goline/huy/quant_chat_bot/LLM_Project/data/stockcode_data/doanh_nghiep.csv")
+print("✅ Loaded stock code knowledge")
 # def answer_with_hybrid_rag(question: str):
 #     pg_session = SessionLocal()
 #     dense_retriever = DenseRetriever(client, bert_model)
@@ -111,5 +116,38 @@ def post_processing(answer):
     return vietnamese_answer
 
 def route_fn(message: str):
+    intent, secCd, contentType = agent.inference(message, "0", "0")
+    try:
+        sentiment_analysis_by_secCd(secCd.split(","))
+    except Exception as e:
+        print(e)
+    return intent, secCd, contentType
 
-    return agent.run_batch([message], ["0"], ["0"])[0]
+def sentiment_analysis_by_secCd(secCds: list):
+    for secCd in secCds:        
+        nhom_nganh = secCd_df[secCd_df['maDN']==secCd].loc[:, 'nhomNganh'].values[0].split("; ")[-1].replace("Nhom nganh ", "")
+        yesterday_timestamp = (datetime.now() - timedelta(days=20)).replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
+        news = fetch_newest_info(int(yesterday_timestamp)) #lấy tin tức từ ngày hôm qua
+        extracted_sector_sentences = extract_sector_sentences(news, sector_keywords)
+        print("Nhom nganh", nhom_nganh)
+        print(extracted_sector_sentences.keys())
+        selected_sentence = extracted_sector_sentences.get(nhom_nganh, None)
+        if len(selected_sentence):
+            scores = sentiment_analysis(selected_sentence)
+            print(selected_sentence)
+            print(scores)
+        else:
+            print(f"Không tìm thấy dữ liệu tin tức mới nhất về ngành {nhom_nganh}")
+
+if __name__=="__main__":
+    secCds = ["ACB"]
+    sentiment_analysis_by_secCd(secCds)
+
+
+
+
+
+
+
+
+

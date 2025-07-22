@@ -25,9 +25,9 @@ def run_pipeline(
 ):
     try:
         # # 1️. Crawl dữ liệu
-        # print("Bắt đầu Crawl dữ liệu...")
-        # crawl_result = run_crawler(crawl_source, days)
-        # print("Crawl thành công!")
+        print("Bắt đầu Crawl dữ liệu...")
+        crawl_result = run_crawler(crawl_source, days)
+        print("Crawl thành công!")
 
         # # 2️. Kiểm tra trùng lặp dữ liệu
         print("Bắt đầu kiểm tra trùng lặp dữ liệu...")
@@ -67,7 +67,9 @@ def chat(req: ChatRequest):
 @app.post("/test_router_agent")
 def route_question(req: ChatRequest):
     try:
-        response = route_fn(req.message)
-        return {"message:", response}
+        intent, secCd, contentType = route_fn(req.message)
+        return {"intent": intent,
+                "secCd": secCd,
+                "contentType": contentType}
     except Exception as e:
         return e

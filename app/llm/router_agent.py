@@ -26,7 +26,7 @@ class RouterAgent():
                   max_length:int=64,
                   use_onnx:bool=False):
         
-        self.device = "cuda:1" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if use_onnx:
             pass
         # if self.device == "cpu":
@@ -125,12 +125,57 @@ class RouterAgent():
                                  session_id=session_id, 
                                  user_id=user_id)
     
+    def inference(self, question, session_id, user_id):
+        assert isinstance(question, str), "input question should be a string"
+        if not self.use_onnx:
+            self.intent_model.eval()
+            self.entity_model.eval()
+        with torch.no_grad():
+            start = time()
+
+            # Intent
+            intent_inputs = self.intent_tokenizer(question, return_tensors="pt", padding=True, truncation=True, max_length=self.max_length).to(self.device)
+            intent_outputs = self.intent_model(**intent_inputs)
+            predicted_class_idx = torch.argmax(intent_outputs.logits, dim=-1).item()
+            intent = self.label_list[predicted_class_idx]
+            print(intent)
+
+            # Entity
+            entity_inputs = self.entity_tokenizer(question, return_tensors="pt", padding=True, truncation=True, max_length=self.max_length).to(self.device)
+            entity_output_ids = self.entity_model.generate(**entity_inputs)
+            entity_decoded = self.entity_tokenizer.decode(entity_output_ids[0], skip_special_tokens=True)
+
+            contentType, secCd, _ = self.entity_post_processing(question, entity_decoded)
+            print("Intent:", intent, secCd, contentType)
+            print("Run time:", time()-start)
+
+            if predicted_class_idx == self.sec_news_idx or predicted_class_idx == self.questions_of_document:
+                contentType = None
+            if secCd == "":
+                secCd = None
+            if contentType == "":
+                contentType = None
+
+            if predicted_class_idx == self.compare_secirity_idx:
+                contentType = "indexSection"
+            elif intent == "request_financial_info":
+                contentType = "financingSection"
+            elif intent == "stock_insight":
+                contentType = "stock_insight"
+            elif intent == "financial_analysis":
+                contentType = "ALL"
+            elif intent == "outperform_stock":
+                secCd = None
+
+        return intent, secCd, contentType
+
+
     def run_batch(self, questions: List[str], session_ids: List[str], user_ids: List[str]):
         start = time()
         results = []
         if not self.use_onnx:
             self.intent_model.eval()
-            # self.entity_model.eval()
+            self.entity_model.eval()
 
         with torch.no_grad():
             infer_start=time()
@@ -160,16 +205,16 @@ class RouterAgent():
                     contentType = None
                 if secCd == "":
                     secCd = None
-                # if intent_idx == self.compare_secirity_idx:
-                #     contentType = "indexSection"
-                # elif intent == "request_financial_info":
-                #     contentType = "financingSection"
-                # elif intent == "stock_insight":
-                #     contentType = "stock_insight"
-                # elif intent == "financial_analysis":
-                #     contentType = "ALL"
-                # elif intent == "outperform_stock":
-                #     secCd = None
+                if intent_idx == self.compare_secirity_idx:
+                    contentType = "indexSection"
+                elif intent == "request_financial_info":
+                    contentType = "financingSection"
+                elif intent == "stock_insight":
+                    contentType = "stock_insight"
+                elif intent == "financial_analysis":
+                    contentType = "ALL"
+                elif intent == "outperform_stock":
+                    secCd = None
 
                 output = self.output_parser(intent, question, contentType, secCd, session_id, user_id)
                 results.append(output)
