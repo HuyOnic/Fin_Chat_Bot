@@ -193,7 +193,7 @@ def fetch_news_by_ids(ids: list[int]) -> list[dict]:
 
 def fetch_newest_info(news_date: int):
     query = """
-        SELECT content 
+        SELECT content, source
         FROM news 
         WHERE news_date >= %s
     """
@@ -201,7 +201,8 @@ def fetch_newest_info(news_date: int):
         with conn.cursor() as cur:
             cur.execute(query, (news_date,))
             results = cur.fetchall()
-    results = [result[0] for result in results]
+    columns = ["content", "source"]
+    results = [dict(zip(columns, row)) for row in results]
     return results
 
 if __name__=="__main__":

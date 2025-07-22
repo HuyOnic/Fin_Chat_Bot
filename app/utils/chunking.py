@@ -14,16 +14,35 @@ def split_sentences(text):
     # Tách theo dấu câu tiếng Việt (., !, ?) có thể kèm theo xuống dòng
     return [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if s.strip()]
 
-def extract_sector_sentences(documents, sector_keywords):
+# def extract_sector_sentences(news, sector_keywords):
+#     matched_sentences = {}
+#     for item in news:
+#         sentences = split_sentences(item["content"])
+#         for sent in sentences:
+#             for sector, keywords in sector_keywords.items():
+#                 for kw in keywords:
+#                     if kw.lower() in sent.lower():
+#                         if sector not in list(matched_sentences.keys()):
+#                             matched_sentences[sector] = {"sentence":[sent],
+#                                                          "source":[item["source"]]}
+#                         else:
+#                             matched_sentences[sector]["sentence"].append(sent)
+#                             matched_sentences[sector]["source"].append(item["source"])  
+#     return matched_sentences
+
+def extract_sector_sentences(news, sector_keywords):
     matched_sentences = {}
-    for document in documents:
-        sentences = split_sentences(document)
+
+    for item in news:
+        sentences = split_sentences(item["content"])
+        source = item["source"]
+        
         for sent in sentences:
+            sent_lower = sent.lower()
             for sector, keywords in sector_keywords.items():
-                for kw in keywords:
-                    if kw.lower() in sent.lower():
-                        if sector not in list(matched_sentences.keys()):
-                            matched_sentences[sector] = [sent]
-                        else:
-                            matched_sentences[sector].append(sent) 
+                if any(kw.lower() in sent_lower for kw in keywords):
+                    matched = matched_sentences.setdefault(sector, {"sentence": [], "source": []})
+                    matched["sentence"].append(sent)
+                    matched["source"].append(source)
+
     return matched_sentences

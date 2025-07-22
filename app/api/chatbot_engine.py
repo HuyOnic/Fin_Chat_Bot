@@ -118,26 +118,92 @@ def post_processing(answer):
 def route_fn(message: str):
     intent, secCd, contentType = agent.inference(message, "0", "0")
     try:
-        sentiment_analysis_by_secCd(secCd.split(","))
+        prompt = sentiment_analysis_by_secCd(secCd.split(","))
     except Exception as e:
         print(e)
     return intent, secCd, contentType
 
+def sentiment_news(message: str):
+    intent, secCd, contentType = agent.inference(message, "0", "0")
+    try:
+        
+        sentiment_prompt = ChatPromptTemplate.from_template(sentiment_analysis_by_secCd(secCd.split(",")))
+
+        # 1. Chuyển đổi câu hỏi thành vector
+        vector = convert_to_vector(message)
+        if vector is None:
+            raise ValueError("Không thể chuyển câu hỏi thành vector.")
+
+        # 2. Tìm các vector tương tự
+        similar_vectors = get_similar_vectors(vector, threshold=0.7) or []
+
+        # 3. Chọn prompt phù hợp và context
+        if not similar_vectors:
+            prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_PROMPT)
+            context = ""
+        else:
+            prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT)
+            ids = [sv[0] for sv in similar_vectors]
+            docs = fetch_news_by_ids(ids) or []
+            context = "\n\n".join(doc.text for doc in docs)
+
+    
+
+        # 4. Tạo pipeline chain
+        rag_chain = (
+            # {"context": RunnablePassthrough(), "question": RunnablePassthrough()}
+            prompt
+            | llm
+            | StrOutputParser()
+        )
+
+        # 5. Run chain
+        response = rag_chain.invoke({"question": message, "context": sentiment_prompt})
+        return response
+
+    except Exception as e:
+        print(e)
+
 def sentiment_analysis_by_secCd(secCds: list):
     for secCd in secCds:        
-        nhom_nganh = secCd_df[secCd_df['maDN']==secCd].loc[:, 'nhomNganh'].values[0].split("; ")[-1].replace("Nhom nganh ", "")
+        nhom_nganh = secCd_df[secCd_df['maDN']==secCd].loc[:, 'nhomNganh'].values[0].split("; ")[-1].replace("Nhom nganh", "")
         yesterday_timestamp = (datetime.now() - timedelta(days=20)).replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
+        start = time()
         news = fetch_newest_info(int(yesterday_timestamp)) #lấy tin tức từ ngày hôm qua
+        print("fetch_news:",time()-start)
+
+        start = time()
         extracted_sector_sentences = extract_sector_sentences(news, sector_keywords)
-        print("Nhom nganh", nhom_nganh)
-        print(extracted_sector_sentences.keys())
+        print("extract sector:", time()-start)
+
         selected_sentence = extracted_sector_sentences.get(nhom_nganh, None)
+        
         if len(selected_sentence):
-            scores = sentiment_analysis(selected_sentence)
-            print(selected_sentence)
-            print(scores)
+            sentences = selected_sentence["sentence"]
+            sources = selected_sentence["source"]
+
+            start = time()
+            scores = sentiment_analysis(sentences)
+            print('Sentiment analysis', time()-start)
+
+            # BUILD PROMPS
+            prompt = f"Theo phân tích dựa trên những tin tức gần đây nhất cho mã {secCd}"
+            for i in range(len(scores)):
+                score = scores[i].item()
+                prompt+=f"\n📢 Nguồn tin {sources[i]} Sentiment Score:{score}"
+                if score >= 0.5:
+                    prompt+="\n=> Tin tức tích cực, giá của mã sẽ tăng"
+                elif score <= -0.5:
+                    prompt+="\n=> Tin tức tiêu cực, giá của mã sẽ giảm"
+                else:
+                    prompt+="\n=> Tin tức trung lập"
+            return prompt
+
         else:
             print(f"Không tìm thấy dữ liệu tin tức mới nhất về ngành {nhom_nganh}")
+
+
+
 
 if __name__=="__main__":
     secCds = ["ACB"]
