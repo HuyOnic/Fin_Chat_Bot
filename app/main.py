@@ -2,7 +2,7 @@ from fastapi import FastAPI, Query
 from app.api.crawl import run_crawler
 from app.api.preprocess import check_and_update_duplicates
 from app.api.update_sentiment import update_sentiment
-from app.api.chatbot_engine import ask_bot, chat_bot, route_fn, sentiment_news
+from app.api.chatbot_engine import ask_bot, chat_bot, rounting, sentiment_news
 from pydantic import BaseModel
 
 class ChatRequest(BaseModel):
@@ -67,10 +67,8 @@ def chat(req: ChatRequest):
 @app.post("/test_router_agent")
 def route_question(req: ChatRequest):
     try:
-        intent, secCd, contentType = route_fn(req.message)
-        return {"intent": intent,
-                "secCd": secCd,
-                "contentType": contentType}
+        response = rounting(req.message)
+        return {"context": response}
     except Exception as e:
         return e
     

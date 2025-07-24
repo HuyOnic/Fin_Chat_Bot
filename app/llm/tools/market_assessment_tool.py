@@ -1,6 +1,7 @@
 #http://10.10.3.31:7000/market/api/public/mrktsec-quotes-detail?secCd=SSI&contentType=lastPrice&language=VI
 import requests
 from pprint import pprint
+import json
 
 def get_market_assessment(secCd, contentType, language, jwt_token):
     url = "https://api-ai.goline.vn/api/public/chat-management/test"
@@ -39,7 +40,7 @@ def get_market_assessment(secCd, contentType, language, jwt_token):
     }
     try:
         response = requests.get(url, headers=headers, params=params, json=json_body)
-        return response.text
+        return json.loads(json.loads(response.text)["data"]["data"])["data"]
     except Exception as e:
         print("Lỗi khi gọi market API:", e)
 

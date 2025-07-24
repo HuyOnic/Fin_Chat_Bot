@@ -1,5 +1,5 @@
 #http://10.10.3.31:7000/market/api/public/mrktsec-quotes-detail?secCd=SSI&contentType=lastPrice&language=VI
-import requests
+import requests, json
 # API success nhưng không trả về nội dung chính xác
 
 def get_outperform_stock(contentType, language, jwt_token):
@@ -39,7 +39,7 @@ def get_outperform_stock(contentType, language, jwt_token):
     }
     try:
         response = requests.get(url, headers=headers, params=params, json=json_body)
-        return response.text
+        return json.loads(response.text)["data"]["data"]
     except Exception as e:
         print("Lỗi khi gọi market API:", e)
 
