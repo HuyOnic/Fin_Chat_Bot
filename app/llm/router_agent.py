@@ -23,7 +23,7 @@ class RouterAgent():
                   #entity_model_ckt:str="router_agent/results/entity_onnx",
                   label_list_path:str="router_agent/data/label_list_Balanced_Questions_Dataset.yaml",
                   api_call_lis_path:str="router_agent/data/api_call_list.yaml",
-                  max_length:int=64,
+                  max_length:int=128,
                   use_onnx:bool=False):
         
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -138,15 +138,13 @@ class RouterAgent():
             intent_outputs = self.intent_model(**intent_inputs)
             predicted_class_idx = torch.argmax(intent_outputs.logits, dim=-1).item()
             intent = self.label_list[predicted_class_idx]
-            print(intent)
 
             # Entity
             entity_inputs = self.entity_tokenizer(question, return_tensors="pt", padding=True, truncation=True, max_length=self.max_length).to(self.device)
-            entity_output_ids = self.entity_model.generate(**entity_inputs)
-            entity_decoded = self.entity_tokenizer.decode(entity_output_ids[0], skip_special_tokens=True)
-
+            entity_output_ids = self.entity_model.generate(**entity_inputs, max_new_tokens=self.max_length)
+            entity_decoded = self.entity_tokenizer.decode(entity_output_ids[0], skip_special_tokens=True, num_return_sequences=1)
+            print("ENT decoded:", entity_decoded)
             contentType, secCd, _ = self.entity_post_processing(question, entity_decoded)
-            print("Intent:", intent, secCd, contentType)
             print("Run time:", time()-start)
 
             if predicted_class_idx == self.sec_news_idx or predicted_class_idx == self.questions_of_document:
@@ -168,7 +166,6 @@ class RouterAgent():
                 secCd = None
 
         return intent, secCd, contentType
-
 
     def run_batch(self, questions: List[str], session_ids: List[str], user_ids: List[str]):
         start = time()
@@ -261,15 +258,18 @@ class RouterAgent():
 
     def entity_post_processing(self, question, raw_text):
         content_types = re.findall(r'\((.*?)\)', raw_text)
-        # not_content_types = ['100', '200', '300', ' 100', ' 200', ' 300']
-        # content_types = [item for item in content_types if item not in not_content_types]
+        not_content_types = ['100', '200', '300']
         stock_codes = list(map(lambda x: x.replace(" ","").upper(), re.findall(r'\[(.*?)\]', raw_text)))
+        for content_type in content_types:
+            if content_type.strip() in not_content_types:
+                stock_codes.append(content_type.strip())
+        print("STOCK_CODE", stock_codes)
+        content_types = [c.strip() for c in content_types if c.strip() not in not_content_types]
         if len(stock_codes)==0:
-            stock_codes = re.findall(r'\b[A-Z]{3,5}\b', question)   
+            stock_codes = re.findall(r'\b[A-Z]{3,5}\b', question)
         if ("UPCOMP" in raw_text) or ("UPCOM" in raw_text):
             stock_codes.append("UPCOMP")
         not_stock_codes = ["HSX", "VN", "ATO", "OTP", "ALL"]
-        # not_stock_codes = ["TÔI", "MÃ", "CỔPHIẾU", "SÀN", "ALL", "THỊTRƯỜNG", "MẠNH,YẾU", "SỐC", "APPROACHING", "TOP", "NGẮNHẠN", "200", "1", "VÀ(200)CỦA[HNX", "HSX", "VN", "ATO", "OTP"]
         stock_codes = [stock_code for stock_code in stock_codes if stock_code not in not_stock_codes]
         return ",".join(content_types).replace(" ",""), ",".join(stock_codes), len(stock_codes)*3
     
@@ -280,8 +280,8 @@ class RouterAgent():
         else:
             secCd = secCd.split(",")
             secCd = list(set([cd if cd not in self.plat_codes.keys() else self.plat_codes[cd] for cd in secCd]))
-            top = len(secCd)*3
             secCd = ",".join(secCd)
+            top = len(secCd)*3
         dict_template = {
             "compare_FA": 
             {

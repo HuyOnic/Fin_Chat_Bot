@@ -2,7 +2,7 @@ ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT = """Bạn là một trợ lý AI 
 
 Tài liệu:
 
-{content}
+{context}
 
 Trả lời chi tiết cho câu hỏi của người dùng dưới đây bằng Tiếng Việt, không sử dụng Tiếng Anh.
 
@@ -14,4 +14,3 @@ trả lời chi tiết cho câu hỏi của người dùng dưới đây bằng 
 
 Câu hỏi: {question}
 """
-
