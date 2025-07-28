@@ -36,7 +36,6 @@ def sentiment_analysis(content_list: list):
     logits = sentiment_model(**inputs).logits
     probs = F.softmax(logits, dim=1)
     scores = probs[:, 0]*-1 + probs[:, 1]*0 + probs[:, 2]*1
-    print(scores.mean().item())
     return scores
 
 if __name__=="__main__":
