@@ -2,8 +2,9 @@ from fastapi import FastAPI, Query
 from app.api.crawl import run_crawler
 from app.api.preprocess import check_and_update_duplicates
 from app.api.update_sentiment import update_sentiment
-from app.api.chatbot_engine import ask_bot, chat_bot, rounting, sentiment_news
+from app.api.chatbot_engine import ask_bot, chat_bot, rounting, sentiment_news, sentiment_vn30f1m
 from pydantic import BaseModel
+import requests
 
 class ChatRequest(BaseModel):
     message: str
@@ -59,16 +60,16 @@ def ask(question: str):
 # def test_hybrid_rag(question: str):
 #     return {"result:", answer_with_hybrid_rag(question)}
 
-@app.post("/test_chat")
-def chat(req: ChatRequest):
-    response = chat_bot(req.message)
-    return {"message:", response}
+# @app.post("/test_chat")
+# def chat(req: ChatRequest):
+#     response = chat_bot(req.message)
+#     return {"message:", response}
 
-@app.post("/test_router_agent")
+@app.post("/test_chat")
 def route_question(req: ChatRequest):
     try:
         response = rounting(req.message)
-        return {"context": response}
+        return {"message": response}
     except Exception as e:
         return e
     
@@ -77,6 +78,14 @@ def test_sentiment_news(req: ChatRequest):
     try:
         prompt = sentiment_news(req.message)
         return {"message": prompt}
+    except Exception as e:
+        return e
+    
+
+@app.post("/sentiment_vn30f1m")
+def test_sentiment_vn30f1m(req: ChatRequest):
+    try:
+        return {"score:", sentiment_vn30f1m()}
     except Exception as e:
         return e
     

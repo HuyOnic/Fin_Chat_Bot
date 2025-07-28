@@ -3,6 +3,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 import pandas as pd
+import numpy as np
 from time import time
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -21,7 +22,7 @@ from app.llm.prompts import ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT, ANSWE
 from app.utils.vectorizer import convert_to_vector
 from app.utils.sentimenizer import sentiment_analysis
 from app.utils.sector_keywords import sector_keywords
-from app.utils.chunking import extract_sector_sentences
+from app.utils.chunking import extract_sector_sentences, split_sentences
 from app.llm.tools import *
 
 load_dotenv()
@@ -31,7 +32,7 @@ llm = ChatOpenAI(
     model=os.getenv("LLM_MODEL_NAME"),
     base_url=os.getenv("OPENAI_API_BASE_URL", "http://localhost:8000/v1"),
     api_key=os.getenv("OPEN_API_KEY"),
-    temperature=0.7
+    temperature=0
 )
 agent = RouterAgent(intent_tokenizer_ckt="models/phobert_tokenizer",
                     intent_model_ckt="models/intent_classifier",
@@ -40,9 +41,13 @@ agent = RouterAgent(intent_tokenizer_ckt="models/phobert_tokenizer",
                     label_list_path="models/label_list_Balanced_Questions_Dataset.yaml",
                     api_call_lis_path="models/api_call_list.yaml",
                     use_onnx=False)
+
 print("✅ Loaded Router Agent")
 secCd_df = pd.read_csv("/home/goline/huy/quant_chat_bot/LLM_Project/data/stockcode_data/doanh_nghiep.csv")
+vn30_codes = pd.read_csv("/home/goline/huy/quant_chat_bot/LLM_Project/data/vn30_weights.csv")
+vn30_df = pd.merge(vn30_codes, secCd_df, how="left", on="maDN")
 print("✅ Loaded stock code knowledge")
+
 market_api_token = os.getenv("MARKET_API_TOKEN")
 language = os.getenv("LANGUAGE")
 
@@ -79,6 +84,26 @@ def ask_bot(question: str):
     print("LLM answer time:", time() - start)
     return post_processing("")
 
+def retrieve(message):
+    try:
+        # 1. Chuyển đổi câu hỏi thành vector
+        vector = convert_to_vector(message)
+        if vector is None:
+            raise ValueError("Không thể chuyển câu hỏi thành vector.")
+
+        # 2. Tìm các vector tương tự
+        similar_vectors = get_similar_vectors(vector, threshold=0.7) or []
+
+        # 3. Chọn prompt phù hợp và context
+        if not similar_vectors:
+            context = "Không truy vấn được nội dung cần tìm"
+        else:
+            ids = [sv[0] for sv in similar_vectors]
+            docs = fetch_news_by_ids(ids) or []
+            context = "\n\n".join(doc.text for doc in docs)
+        return context
+    except Exception as e:
+        print(e)
 
 def chat_bot(message: str) -> str:
     try:
@@ -139,13 +164,11 @@ def rounting(message: str):
             for c in contexts:
                 for code in c["data"]:
                     context += f"{code['data']}\n"
-            return contexts
 
         elif intent=="compare_securities" or intent=="technical_analysis":
             # API financial_infomation bị lỗi, data: "---"
             fi_res = get_financial_infomation(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
             tp_res = get_technical_price_list(secCd=secCd, contentType="ALL", language=language, jwt_token=market_api_token)
-            return tp_res
 
         elif intent=="financial_analysis" or intent=="stock_insight":
             # API financial_infomation bị lỗi, data: "---"
@@ -180,8 +203,7 @@ def rounting(message: str):
         
         elif intent=="questions_of_document":
             # Không cần API, trả lời bằng retrieve
-            context="RAG"
-            pass
+            context= retrieve(message)
 
         elif intent=="sect_news":
             # API sect_news bị lỗi {"status":"SUCCESS","arg":null,"data":{"statusCode":0,"errorCode":null,"message":null,"errorField":null,"data":[],"totalRecords":0}}
@@ -206,7 +228,11 @@ def rounting(message: str):
             | llm
             | StrOutputParser()
         )
-        response = rag_chain.invoke({"question": message, "context": context})
+        if str(context)=='{"status":"SUCCESS","arg":null}':
+            response = "Xin lỗi Quý Khách, hiện tại chúng tôi không thể trả lời câu hỏi của Quý Khách."
+        else:
+            response = rag_chain.invoke({"question": message, "context": context})
+        
         return response
         
         # prompt = sentiment_analysis_by_secCd(secCd.split(","))
@@ -290,9 +316,36 @@ def sentiment_analysis_by_secCd(secCds: list):
         else:
             print(f"Không tìm thấy dữ liệu tin tức mới nhất về ngành {nhom_nganh}")
 
+def sentiment_vn30f1m():
+    try:
+        yesterday_timestamp = (datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
+        news = fetch_newest_info(yesterday_timestamp)
+        print(f"Tìm thấy {len(news)} tin tức mới nhất. Đang tiến hành phân tích...")
+        sentiment_results={}
+
+        for idx, row in vn30_df.iterrows():
+            nhom_nganh = row["nhomNganh"].split("; ")[-1].replace("Nhom nganh", "")
+            keywords = sector_keywords[nhom_nganh]
+            impact_sentences = []
+            for new in news:
+                sentences = split_sentences(new["content"])
+                impact_sentences.extend([sentence.lower() for sentence in sentences if any(keyword.lower() in sentence.lower() for keyword in keywords)])
+            print("Số sentence ảnh hưởng:", len(impact_sentences))
+            if len(impact_sentences):
+                score = row["Tỷ trọng"]*sentiment_analysis(impact_sentences).mean().item()
+            else:
+                score = 0
+            sentiment_results[row["maDN"]] = score
+            print(row["maDN"], ":", score)
+        response = "Sentiment Score VN30F1M:"+str(sum(sentiment_results.values()))
+        return response
+
+    except Exception as e:
+        print(e)
+
 if __name__=="__main__":
-    secCds = ["ACB"]
-    sentiment_analysis_by_secCd(secCds)
+    sentiment_vn30f1m()
+
 
 
 
