@@ -114,7 +114,7 @@ def chat_bot(message: str) -> str:
 
         # 2. Tìm các vector tương tự
         similar_vectors = get_similar_vectors(vector, threshold=0.7) or []
-
+        print("Tìm được:", len(similar_vectors))
         # 3. Chọn prompt phù hợp và context
         if not similar_vectors:
             prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_PROMPT)
@@ -165,39 +165,39 @@ def rounting(message: str):
                 for code in c["data"]:
                     context += f"{code['data']}\n"
 
-        elif intent=="compare_securities" or intent=="technical_analysis":
+        elif intent=="compare_securities" or intent=="technical_analysis": #TA+FA
             # API financial_infomation bị lỗi, data: "---"
             fi_res = get_financial_infomation(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
             tp_res = get_technical_price_list(secCd=secCd, contentType="ALL", language=language, jwt_token=market_api_token)
 
-        elif intent=="financial_analysis" or intent=="stock_insight":
+        elif intent=="financial_analysis" or intent=="stock_insight": #TA+FA
             # API financial_infomation bị lỗi, data: "---"
             context = get_financial_analysis(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
         
-        elif intent=="financial_valuation":
+        elif intent=="financial_valuation": #TA+FA
             # API financial valuation bị lỗi '{"status":"SUCCESS","arg":null,"data":{"statusCode":1,"errorCode":null,"message":null,"errorField":null,"data":null,"totalRecords":null}}'
             context = get_financial_valuation(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
                     
-        elif intent=="flashdeal_recommend":
+        elif intent=="flashdeal_recommend": #TA+FA
             #API flashdeal_recommend bị lỗi, trường rows trả về list rỗng
             context = get_flashdeal_recommend(marketCdList=secCd, contentType=contentType, language=language, jwt_token=market_api_token)  
         
-        elif intent=="investment_efficiency":
+        elif intent=="investment_efficiency": #Full Info
             # chưa gọi được API
             context = get_display_investment_efficiency(contentType=contentType, language=language, jwt_token=market_api_token)  
 
-        elif intent=="margin_account_status":
+        elif intent=="margin_account_status": #Full Info
             # chưa gọi được API
             context = get_margin_account_status(language=language, jwt_token=market_api_token)
         
-        elif intent=="market_assessment":
+        elif intent=="market_assessment": #TA+FA
             context = get_market_assessment(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
 
-        elif intent=="organization_info":
+        elif intent=="organization_info": #Full Info
             # API organization info bị lỗi, data:"---"
             context = get_organization_info(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
         
-        elif intent=="outperform_stock":
+        elif intent=="outperform_stock": #Full Info
             # API trả về  các mã với giá toàn 0.0
             context = get_outperform_stock(contentType=contentType, language=language, jwt_token=market_api_token)
         
@@ -205,7 +205,7 @@ def rounting(message: str):
             # Không cần API, trả lời bằng retrieve
             context= retrieve(message)
 
-        elif intent=="sect_news":
+        elif intent=="sect_news": 
             # API sect_news bị lỗi {"status":"SUCCESS","arg":null,"data":{"statusCode":0,"errorCode":null,"message":null,"errorField":null,"data":[],"totalRecords":0}}
             context = get_sect_news(secCd=secCd, language=language, jwt_token=market_api_token)
         
@@ -217,7 +217,7 @@ def rounting(message: str):
         elif intent=="top_index_contribution":
             context = get_top_index_contribution(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
         
-        elif intent=="top_sec_index":
+        elif intent=="top_sec_index": #Full Info
             # API lỗi, trả về data: "---"
             context = get_top_sec_index(contentType=contentType, language=language, jwt_token=market_api_token)
 

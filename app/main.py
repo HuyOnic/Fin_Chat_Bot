@@ -16,7 +16,7 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello, world!"}
+    return {"message": "Hello trade world!"}
 
 @app.post("/run-pipeline")
 def run_pipeline(
@@ -53,7 +53,7 @@ def run_pipeline(
     
 @app.post("/ask")
 def ask(question: str):
-    return {"answer:", ask_bot(question)}
+    return {"answer": ask_bot(question)}
 
 # Testing
 # @app.post("/test_hybrid_rag")
@@ -81,11 +81,13 @@ def test_sentiment_news(req: ChatRequest):
     except Exception as e:
         return e
     
-
 @app.post("/sentiment_vn30f1m")
 def test_sentiment_vn30f1m(req: ChatRequest):
     try:
         return {"score:", sentiment_vn30f1m()}
     except Exception as e:
         return e
+    
+if __name__=="__main__":
+    chat_bot("hello")
     
