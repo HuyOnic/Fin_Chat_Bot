@@ -6,8 +6,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 env_path = Path(__file__).resolve().parent.parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
-# MODEL_DIR = os.getenv("MODEL_DIR", "./models/sentence_transformers")
-MODEL_DIR = "BAAI/bge-m3"
+MODEL_DIR = os.getenv("EMBEDDING_MODEL", "./models/sentence_transformers")
+#MODEL_DIR = "BAAI/bge-m3"
 print(f"Đang load model từ: {MODEL_DIR}")
 
 try:
