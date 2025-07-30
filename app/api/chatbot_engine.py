@@ -43,8 +43,8 @@ agent = RouterAgent(intent_tokenizer_ckt="models/phobert_tokenizer",
                     use_onnx=False)
 
 print("✅ Loaded Router Agent")
-secCd_df = pd.read_csv("/home/goline/huy/quant_chat_bot/LLM_Project/data/stockcode_data/doanh_nghiep.csv")
-vn30_codes = pd.read_csv("/home/goline/huy/quant_chat_bot/LLM_Project/data/vn30_weights.csv")
+secCd_df = pd.read_csv("data/stockcode_data/doanh_nghiep.csv")
+vn30_codes = pd.read_csv("data/vn30_weights.csv")
 vn30_df = pd.merge(vn30_codes, secCd_df, how="left", on="maDN")
 print("✅ Loaded stock code knowledge")
 
@@ -175,7 +175,7 @@ def rounting(message: str):
             context = get_financial_analysis(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
         
         elif intent=="financial_valuation": #TA+FA
-            # API financial valuation bị lỗi '{"status":"SUCCESS","arg":null,"data":{"statusCode":1,"errorCode":null,"message":null,"errorField":null,"data":null,"totalRecords":null}}'
+            # API financial_valuation bị lỗi '{"status":"SUCCESS","arg":null,"data":{"statusCode":1,"errorCode":null,"message":null,"errorField":null,"data":null,"totalRecords":null}}'
             context = get_financial_valuation(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
                     
         elif intent=="flashdeal_recommend": #TA+FA
@@ -183,11 +183,11 @@ def rounting(message: str):
             context = get_flashdeal_recommend(marketCdList=secCd, contentType=contentType, language=language, jwt_token=market_api_token)  
         
         elif intent=="investment_efficiency": #Full Info
-            # chưa gọi được API
+            # chưa gọi được API investment_efficiency
             context = get_display_investment_efficiency(contentType=contentType, language=language, jwt_token=market_api_token)  
 
         elif intent=="margin_account_status": #Full Info
-            # chưa gọi được API
+            # chưa gọi được API margin_account_status
             context = get_margin_account_status(language=language, jwt_token=market_api_token)
         
         elif intent=="market_assessment": #TA+FA
@@ -198,7 +198,7 @@ def rounting(message: str):
             context = get_organization_info(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
         
         elif intent=="outperform_stock": #Full Info
-            # API trả về  các mã với giá toàn 0.0
+            # API trả về  outperform_stock các mã với giá toàn 0.0
             context = get_outperform_stock(contentType=contentType, language=language, jwt_token=market_api_token)
         
         elif intent=="questions_of_document":
@@ -218,7 +218,7 @@ def rounting(message: str):
             context = get_top_index_contribution(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
         
         elif intent=="top_sec_index": #Full Info
-            # API lỗi, trả về data: "---"
+            # API top_sec_index lỗi, trả về data: "---"
             context = get_top_sec_index(contentType=contentType, language=language, jwt_token=market_api_token)
 
         prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT)
@@ -318,7 +318,7 @@ def sentiment_analysis_by_secCd(secCds: list):
 
 def sentiment_vn30f1m():
     try:
-        yesterday_timestamp = (datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
+        yesterday_timestamp = (datetime.now() - timedelta(days=1)).replace(hour=8, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
         news = fetch_newest_info(yesterday_timestamp)
         print(f"Tìm thấy {len(news)} tin tức mới nhất. Đang tiến hành phân tích...")
         sentiment_results={}

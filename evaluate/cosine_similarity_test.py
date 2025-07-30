@@ -4,7 +4,7 @@ from sentence_transformers import SentenceTransformer, util
 from tqdm import tqdm
 
 # Load mô hình embedding
-model = SentenceTransformer("BAAI/bge-m3")
+model = SentenceTransformer("BAAI/bge-base-en-v1.5")
 
 # Load file CSV (đảm bảo có cột 'question', 'answer')
 df = pd.read_excel("/home/goline/huy/quant_chat_bot/LLM_Project/data/Output_test.xlsx")  # 🔁 thay bằng tên file thật của bạn
@@ -44,5 +44,5 @@ for idx, row in tqdm(df.iterrows(), total=len(df)):
 
 # Lưu ra file mới
 df.to_csv("/home/goline/huy/quant_chat_bot/LLM_Project/data/results_with_similarity.csv", index=False)
-print("SENTIMENT SECORE:", 0.71)
+print("SENTIMENT SECORE:", similarity)
 print("✅ Đã ghi kết quả vào results_with_similarity.csv")

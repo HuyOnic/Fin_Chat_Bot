@@ -84,7 +84,7 @@ def test_sentiment_news(req: ChatRequest):
 @app.post("/sentiment_vn30f1m")
 def test_sentiment_vn30f1m(req: ChatRequest):
     try:
-        return {"score:", sentiment_vn30f1m()}
+        return {"score": sentiment_vn30f1m()}
     except Exception as e:
         return e
     
