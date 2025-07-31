@@ -9,6 +9,7 @@ load_dotenv()
 QDRANT_HOST = os.getenv("QDRANT_HOST")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT"))
 COLLECTION_NAME = "news_vectors"
+STOCKCODE_COLLECTION_NAME = "stockcode_vectors"
 
 client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, check_compatibility=False)
 
@@ -19,44 +20,39 @@ try:
 except Exception as e:
     print("❌ Lỗi kết nối đến Qdrant:", e)
 
-def create_collection():
+def create_collection(collection_name=COLLECTION_NAME):
     try:
         client.recreate_collection(
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name,
             vectors_config=models.VectorParams(
                 size=1024,
                 distance=models.Distance.COSINE
             )
         )
-        print(f"Đã tạo collection '{COLLECTION_NAME}'")
+        print(f"Đã tạo collection '{collection_name}'")
     except Exception as e:
         print(f"Lỗi khi tạo collection: {str(e)}")
 
 
-# id, chunk_content, source, news_date, status
-def insert_vector(article_id, vector, news_id, chunk_content, source, news_date, status):
+def insert_vector(article_id, vector, payload_keys, payload_values, collection_name=COLLECTION_NAME):
     if not isinstance(vector, list):
         vector = vector.tolist()
     client.upsert(
-        collection_name=COLLECTION_NAME,
+        collection_name=collection_name,
         points=[
             models.PointStruct(
                 id=article_id,
                 vector=vector,
-                payload={"news_id": news_id,
-                         "chunk_content": chunk_content,
-                         "source": source,
-                         "news_date": news_date,
-                         "status": status}
+                payload=dict(zip(payload_keys, payload_values))
             )
         ]
     )
 
-def get_similar_vectors(vector, top_k=3, threshold=0.85):
+def get_similar_vectors(vector, top_k=3, threshold=0.85, collection_name=COLLECTION_NAME):
     if not isinstance(vector, list):
         vector = vector.tolist()
     search_result = client.search(
-        collection_name=COLLECTION_NAME,
+        collection_name=collection_name,
         query_vector=vector,
         limit=top_k
     )
@@ -68,42 +64,29 @@ def get_similar_vectors(vector, top_k=3, threshold=0.85):
     return similar_articles
 
 
-def get_documents_by_vector(vector, top_k=3, threshold=0.1):
+def get_documents_by_vector(vector, top_k=3, threshold=0.1, collection_name=COLLECTION_NAME):
     if not isinstance(vector, list):
         vector = vector.tolist()
     search_result = client.search(
-        collection_name=COLLECTION_NAME,
+        collection_name=collection_name,
         query_vector=vector,
         limit=top_k
     )
 
-    docs = []
-    for hit in search_result:
-        if hit.score < threshold:
-            continue
-
-        doc = {
-            "id": hit.payload['news_id'],
-            "news_date": hit.payload['news_date'],
-            "status": hit.payload['status'],
-            "source": hit.payload['source'],
-            "content": hit.payload['chunk_content'],
-        }
-        docs.append(doc)
-
+    docs = [hit.payload for hit in search_result if hit.score >= threshold]
     return docs
 
 
-def view_collection_data(limit=20):
+def view_collection_data(limit=20, collection_name=COLLECTION_NAME):
     # Lấy dữ liệu với scroll API
     records, next_page = client.scroll(
-        collection_name=COLLECTION_NAME,
+        collection_name=collection_name,
         limit=limit,
         with_payload=True,    # Bao gồm metadata
         with_vectors=True,    # Bao gồm vector
     )
-    
-    print(f"\nHiển thị {len(records)} bản ghi từ collection '{COLLECTION_NAME}':")
+
+    print(f"\nHiển thị {len(records)} bản ghi từ collection '{collection_name}':")
     for idx, record in enumerate(records, 1):
         print(f"\nRecord {idx}:")
         print(f"ID: {record.id}")
@@ -112,9 +95,9 @@ def view_collection_data(limit=20):
     
     return records
 
-def qdrant2csv(limit=1000):
+def qdrant2csv(limit=1000, collection_name=COLLECTION_NAME):
     points, _ = client.scroll(
-        collection_name=COLLECTION_NAME,
+        collection_name=collection_name,
         limit=limit,  # Số lượng tối đa
         with_payload=True,
         with_vectors=True  # Bỏ qua vector nếu không cần
