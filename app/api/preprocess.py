@@ -19,7 +19,7 @@ def check_and_update_duplicates(threshold: float):
     print(f"Bắt đầu kiểm tra trùng lặp (threshold={threshold})")
 
     all_data = get_all_pending_preprocess()
-    all_data = [(row[0], row[1], convert_news_date(row[2]), row[3]) for row in all_data]
+    all_data = [(row[0], row[1], convert_news_date(row[2]), row[3], row[4]) for row in all_data]
 
     if not all_data:
         print("Không có dữ liệu để kiểm tra")
@@ -28,7 +28,7 @@ def check_and_update_duplicates(threshold: float):
     print(f"Tổng số bài viết cần kiểm tra: {len(all_data)}")
 
     results = []
-    for current_id, current_content, current_date, source in all_data:
+    for current_id, current_content, current_date, source, status in all_data:
         print(f"Đang kiểm tra bài viết ID {current_id}")
         try:
             source_domain = source.split("//")[1].split("/")[0]
@@ -52,8 +52,8 @@ def check_and_update_duplicates(threshold: float):
                     })
             else:
                 chunk_id = str(uuid.uuid4())
-                insert_chunked_news(chunk_id, current_id, chunk_idx, chunk)
-                insert_vector(chunk_id, vector, source_domain)
+                # insert_chunked_news(chunk_id, current_id, chunk_idx, chunk)
+                insert_vector(chunk_id, vector, current_id, chunk, source_domain, current_date, status)
                 # update_status(current_id, 1)
                 results.append({
                     "current_id": current_id,

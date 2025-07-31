@@ -13,3 +13,8 @@ mini_instruction_data.jsonl
 __pycache__/
 *.py[cod]
 logs/
+
+
+t.ipynb
+t1.ipynb
+t.py
