@@ -18,7 +18,7 @@ from app.retriever.sparse_retriever import SparseRetriever
 from app.db.postgre import fetch_newest_info
 from app.db.qdrant import client
 from app.llm.router_agent import RouterAgent
-from app.llm.prompts import ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT, ANSWER_FINANCIAL_QUESTION_PROMPT
+from app.llm.prompts import *
 from app.utils.vectorizer import convert_to_vector
 from app.utils.sentimenizer import sentiment_analysis
 from app.utils.sector_keywords import sector_keywords
@@ -34,6 +34,7 @@ llm = ChatOpenAI(
     api_key=os.getenv("OPEN_API_KEY"),
     temperature=0
 )
+
 agent = RouterAgent(intent_tokenizer_ckt="models/phobert_tokenizer",
                     intent_model_ckt="models/intent_classifier",
                     entity_tokenizer_ckt="models/vit5_tokenizer",
@@ -146,82 +147,89 @@ def post_processing(answer):
     vietnamese_answer = answer.split("Translation:")[0]
     return vietnamese_answer
 
-def extract_text_only(html_items):
-    return "\n".join([re.sub(r'<.*?>', '', item["data"]).strip() for item in html_items])
-
 def rounting(message: str):
     try:
         intent, secCd, contentType = agent.inference(message, "0", "0")
         print(intent, secCd, contentType)
-        if intent=="account_info":
+        if intent=="account_info": # done
             context = get_display_account_info(contentType=contentType, language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(ANSWER_NOT_SUPPORT_PROMPT)
         
-        elif intent=="compare_FA" or intent=="request_financial_info":
-            response = get_financial_infomation(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
-            contexts = json.loads(json.loads(response)["data"]["data"])["data"]
+        elif intent=="compare_FA" or intent=="request_financial_info": #TA+FA #done
+            context = get_financial_infomation(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
 
-            context = ""
-            for c in contexts:
-                for code in c["data"]:
-                    context += f"{code['data']}\n"
-
-        elif intent=="compare_securities" or intent=="technical_analysis": #TA+FA
-            # API financial_infomation bị lỗi, data: "---"
-            fi_res = get_financial_infomation(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
-            tp_res = get_technical_price_list(secCd=secCd, contentType="ALL", language=language, jwt_token=market_api_token)
+        elif intent=="compare_securities" or intent=="technical_analysis": #TA+FA done
+            # API financial_infomation bị lỗi, data: "---" và khi contentType=indexSection thì trả về {"status":"SUCCESS","arg":null,"data":{"statusCode":1,"errorCode":null,"message":null,"errorField":null,"data":null,"totalRecords":null}}
+            # fi_res = get_financial_infomation(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
+            tp_res = get_technical_price_list(secCd=secCd, contentType="ALL", language=language, jwt_token=market_api_token) 
+            context = f"""
+            {tp_res}
+            """
+            prompt = ChatPromptTemplate.from_template(COMPARE_SECURITY_PROMPT)
 
         elif intent=="financial_analysis" or intent=="stock_insight": #TA+FA
             # API financial_infomation bị lỗi, data: "---"
-            context = get_financial_analysis(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
+            context = get_financial_analysis(secCd=secCd, contentType="indexSection", language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
         
         elif intent=="financial_valuation": #TA+FA
             # API financial_valuation bị lỗi '{"status":"SUCCESS","arg":null,"data":{"statusCode":1,"errorCode":null,"message":null,"errorField":null,"data":null,"totalRecords":null}}'
             context = get_financial_valuation(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
-                    
-        elif intent=="flashdeal_recommend": #TA+FA
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
+        
+        elif intent=="flashdeal_recommend": #TA+FA 
             #API flashdeal_recommend bị lỗi, trường rows trả về list rỗng
             context = get_flashdeal_recommend(marketCdList=secCd, contentType=contentType, language=language, jwt_token=market_api_token)  
-        
-        elif intent=="investment_efficiency": #Full Info
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
+
+        elif intent=="investment_efficiency": #Full Info done
             # chưa gọi được API investment_efficiency
             context = get_display_investment_efficiency(contentType=contentType, language=language, jwt_token=market_api_token)  
+            prompt = ChatPromptTemplate.from_template(ANSWER_NOT_SUPPORT_PROMPT)
 
-        elif intent=="margin_account_status": #Full Info
+        elif intent=="margin_account_status": # done
             # chưa gọi được API margin_account_status
             context = get_margin_account_status(language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(ANSWER_NOT_SUPPORT_PROMPT)
         
-        elif intent=="market_assessment": #TA+FA
+        elif intent=="market_assessment": #TA+FA #done
             context = get_market_assessment(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
 
         elif intent=="organization_info": #Full Info
             # API organization info bị lỗi, data:"---"
             context = get_organization_info(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
         
         elif intent=="outperform_stock": #Full Info
-            # API trả về  outperform_stock các mã với giá toàn 0.0
             context = get_outperform_stock(contentType=contentType, language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
         
         elif intent=="questions_of_document":
             # Không cần API, trả lời bằng retrieve
             context= retrieve(message)
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
 
-        elif intent=="sect_news": 
+        elif intent=="sect_news": #Full Info
             # API sect_news bị lỗi {"status":"SUCCESS","arg":null,"data":{"statusCode":0,"errorCode":null,"message":null,"errorField":null,"data":[],"totalRecords":0}}
             context = get_sect_news(secCd=secCd, language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
         
-        elif intent=="stock_price":
-            contexts = get_mrktsec_quotes_detail(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
-            contexts = json.loads(json.loads(contexts)["data"]["data"])["data"][0]["data"][1]["data"]
-            context = f"Giá của mã {secCd}\n" + extract_text_only(contexts)
+        elif intent=="stock_price": #done
+            context = get_mrktsec_quotes_detail(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(STOCK_PRICE_PROMPT)
     
-        elif intent=="top_index_contribution":
+        elif intent=="top_index_contribution": #done
+            # trường hợp hỏi 3 sàn, API chỉ trả về 1 sàn
             context = get_top_index_contribution(secCd=secCd, contentType=contentType, language=language, jwt_token=market_api_token)
-        
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
+
         elif intent=="top_sec_index": #Full Info
             # API top_sec_index lỗi, trả về data: "---"
             context = get_top_sec_index(contentType=contentType, language=language, jwt_token=market_api_token)
+            prompt = ChatPromptTemplate.from_template(ANSWER_TA_FA_QUESTION_FROM_CONTEXT_PROMPT)
 
-        prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT)
         rag_chain = (
             {"context": RunnablePassthrough(), "question": RunnablePassthrough()}
             | prompt
@@ -234,8 +242,6 @@ def rounting(message: str):
             response = rag_chain.invoke({"question": message, "context": context})
         
         return response
-        
-        # prompt = sentiment_analysis_by_secCd(secCd.split(","))
     except Exception as e:
         print(e)
 
@@ -276,12 +282,12 @@ def sentiment_news(message: str):
         return response
 
     except Exception as e:
-        print(e)
+        print("Lỗi khi chạy pipeline:", e)
 
 def sentiment_analysis_by_secCd(secCds: list):
     for secCd in secCds:        
         nhom_nganh = secCd_df[secCd_df['maDN']==secCd].loc[:, 'nhomNganh'].values[0].split("; ")[-1].replace("Nhom nganh", "")
-        yesterday_timestamp = (datetime.now() - timedelta(days=20)).replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
+        yesterday_timestamp = (datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
         start = time()
         news = fetch_newest_info(int(yesterday_timestamp)) #lấy tin tức từ ngày hôm qua
         print("fetch_news:",time()-start)

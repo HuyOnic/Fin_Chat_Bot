@@ -1,3 +1,5 @@
 /bin/sh: 1: /home/goline/huy/quant_chat_bot/LLM_Project/run_schedule.sh: Permission denied
 /home/goline/huy/quant_chat_bot/LLM_Project/run_schedule.sh: 1: conda: not found
 /home/goline/huy/quant_chat_bot/LLM_Project/run_schedule.sh: 3: python: not found
+/home/goline/huy/quant_chat_bot/LLM_Project/run_schedule.sh: 1: conda: not found
+/home/goline/huy/quant_chat_bot/LLM_Project/run_schedule.sh: 3: python: not found

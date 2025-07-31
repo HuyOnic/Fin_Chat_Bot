@@ -3,6 +3,64 @@ import requests
 from pprint import pprint
 import json
 #API này đang bị lỗi, trả về '{"status":"SUCCESS","arg":null}'
+import re
+
+import re
+
+def simplify_analysis(raw_data) -> str:
+    def strip_html_tags(text):
+        return re.sub(r'<[^>]+>', '', text).strip()
+
+    context_parts = []
+
+    for stock in raw_data:
+        symbol = stock.get("id", "")
+        oscillators = []
+        moving_averages = []
+        summaries = []
+        current_section = None
+
+        for item in stock.get("data", []):
+            item_type = item.get("type")
+            item_data = item.get("data")
+
+            if item_type == "div" and isinstance(item_data, str):
+                if "dao động" in item_data:
+                    current_section = "oscillators"
+                elif "trung bình động" in item_data:
+                    current_section = "moving_averages"
+
+            elif item_type == "table" and current_section:
+                for row in item_data.get("rows", []):
+                    indicator = row[0].get("data")
+                    value = row[1]
+                    action = row[2].get("data")
+                    value_str = f"{value:.2f}" if isinstance(value, float) else str(value)
+                    line = f"- {indicator}: {value_str} → {action}"
+                    if current_section == "oscillators":
+                        oscillators.append(line)
+                    elif current_section == "moving_averages":
+                        moving_averages.append(line)
+
+            elif item_type == "html" and isinstance(item_data, str):
+                summaries.append(f"- {strip_html_tags(item_data)}")
+
+        # Build context string
+        stock_context = []
+        stock_context.append(f"Phân tích kỹ thuật mã {symbol}:")
+        stock_context.append("Chỉ báo dao động:")
+        stock_context.extend(oscillators if oscillators else ["- (Không có dữ liệu)"])
+        stock_context.append("Chỉ báo trung bình động:")
+        stock_context.extend(moving_averages if moving_averages else ["- (Không có dữ liệu)"])
+        stock_context.append("Tổng kết:")
+        stock_context.extend(summaries if summaries else ["- (Không có tổng kết)"])
+        stock_context.append("=" * 50)
+
+        context_parts.append("\n".join(stock_context))
+
+    return "\n\n".join(context_parts)
+
+
 
 def get_technical_price_list(secCd, contentType, language, jwt_token):
     url = "https://api-ai.goline.vn/api/public/chat-management/test"
@@ -41,7 +99,7 @@ def get_technical_price_list(secCd, contentType, language, jwt_token):
     }
     try:
         response = requests.get(url, headers=headers, params=params, json=json_body)
-        return json.loads(json.loads(response.text)["data"]["data"])["data"]
+        return simplify_analysis(json.loads(json.loads(response.text)["data"]["data"])["data"])
     except Exception as e:
         print("Lỗi khi gọi market API:", e)
 
