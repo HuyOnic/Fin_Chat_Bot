@@ -32,7 +32,9 @@ def create_collection():
     except Exception as e:
         print(f"Lỗi khi tạo collection: {str(e)}")
 
-def insert_vector(article_id, vector, source):
+
+# id, chunk_content, source, news_date, status
+def insert_vector(article_id, vector, news_id, chunk_content, source, news_date, status):
     if not isinstance(vector, list):
         vector = vector.tolist()
     client.upsert(
@@ -41,7 +43,11 @@ def insert_vector(article_id, vector, source):
             models.PointStruct(
                 id=article_id,
                 vector=vector,
-                payload={"source": source}
+                payload={"news_id": news_id,
+                         "chunk_content": chunk_content,
+                         "source": source,
+                         "news_date": news_date,
+                         "status": status}
             )
         ]
     )
@@ -60,6 +66,33 @@ def get_similar_vectors(vector, top_k=3, threshold=0.85):
     ]
 
     return similar_articles
+
+
+def get_documents_by_vector(vector, top_k=3, threshold=0.1):
+    if not isinstance(vector, list):
+        vector = vector.tolist()
+    search_result = client.search(
+        collection_name=COLLECTION_NAME,
+        query_vector=vector,
+        limit=top_k
+    )
+
+    docs = []
+    for hit in search_result:
+        if hit.score < threshold:
+            continue
+
+        doc = {
+            "id": hit.payload['news_id'],
+            "news_date": hit.payload['news_date'],
+            "status": hit.payload['status'],
+            "source": hit.payload['source'],
+            "content": hit.payload['chunk_content'],
+        }
+        docs.append(doc)
+
+    return docs
+
 
 def view_collection_data(limit=20):
     # Lấy dữ liệu với scroll API
