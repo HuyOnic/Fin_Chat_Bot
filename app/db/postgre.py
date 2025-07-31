@@ -116,7 +116,7 @@ def get_all_pending_preprocess():
     conn = get_pg_connection()
     cursor = conn.cursor()
     select_query = '''
-    SELECT id, content, news_date, source FROM news ORDER BY news_date ASC
+    SELECT id, content, news_date, source, status FROM news ORDER BY news_date ASC
     '''
     cursor.execute(select_query)
     all_data = cursor.fetchall()
@@ -162,34 +162,34 @@ def update_sentiment_score(article_id, score):
 def get_pg_connection():
     return psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT)
 
-def fetch_news_by_ids(ids: list[int]) -> list[dict]:
-    """
-    Truy vấn danh sách bản tin từ bảng `news` theo id.
+# def fetch_news_by_ids(ids: list[int]) -> list[dict]:
+#     """
+#     Truy vấn danh sách bản tin từ bảng `news` theo id.
     
-    :param ids: List[int] các ID bài viết.
-    :return: List[dict] chứa content và metadata.
-    """
-    if not ids:
-        return []
+#     :param ids: List[int] các ID bài viết.
+#     :return: List[dict] chứa content và metadata.
+#     """
+#     if not ids:
+#         return []
     
-    query = """
-        SELECT id, content, news_type, sec_cd, market_cd, news_date, score, manual_score, source
-        FROM news
-        WHERE id = ANY(%s);
-    """
+#     query = """
+#         SELECT id, content, news_type, sec_cd, market_cd, news_date, score, manual_score, source
+#         FROM news
+#         WHERE id = ANY(%s);
+#     """
 
-    with get_pg_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(query, (ids,))
-            results = cur.fetchall()
+#     with get_pg_connection() as conn:
+#         with conn.cursor() as cur:
+#             cur.execute(query, (ids,))
+#             results = cur.fetchall()
 
-    columns = [
-    "id", "content", "news_type", "sec_cd", "market_cd",
-    "news_date", "score", "manual_score", "source"
-    ]
-    results = [dict(zip(columns, row)) for row in results]
+#     columns = [
+#     "id", "content", "news_type", "sec_cd", "market_cd",
+#     "news_date", "score", "manual_score", "source"
+#     ]
+#     results = [dict(zip(columns, row)) for row in results]
 
-    return results
+#     return results
 
 def fetch_newest_info(news_date: int):
     query = """
