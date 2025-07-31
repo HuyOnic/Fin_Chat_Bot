@@ -59,22 +59,6 @@ def create_news_table():
     conn.close()
     print("Bảng 'news' đã được khởi tạo.")
 
-def create_chunked_news_tables():
-    conn = get_pg_connection()
-    cursor = conn.cursor()
-    create_table_query = '''
-    CREATE TABLE IF NOT EXISTS chunked_news (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        news_id SERIAL REFERENCES news(id) ON DELETE CASCADE,
-        chunk_index INT,
-        chunk_content TEXT NOT NULL
-    );
-    '''
-    cursor.execute(create_table_query)
-    conn.commit()
-    cursor.close()
-    conn.close()
-    print("Bảng chunked_news đã được khởi tạo.")
     
 # Thêm data vào bảng news sau khi crawl
 def insert_news(data_list):
@@ -98,19 +82,7 @@ def insert_news(data_list):
     cursor.close()
     conn.close()
     print("Đã thêm dữ liệu tin tức.")
-
-# Insert data vào bảng chunked_news bằng cách chunk từ bảng news
-def insert_chunked_news(chunk_id, news_id, chunk_index, chunk_content):
-    conn = get_pg_connection()
-    cursor = conn.cursor()
-    insert_query = '''
-    INSERT INTO public.chunked_news (id, news_id, chunk_index, chunk_content)
-    VALUES (%s, %s, %s, %s)
-    '''
-    cursor.execute(insert_query, (chunk_id, news_id, chunk_index, chunk_content))
-    conn.commit()
-    cursor.close()
-    conn.close()
+    
 
 def get_all_pending_preprocess():
     conn = get_pg_connection()
@@ -162,34 +134,34 @@ def update_sentiment_score(article_id, score):
 def get_pg_connection():
     return psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT)
 
-# def fetch_news_by_ids(ids: list[int]) -> list[dict]:
-#     """
-#     Truy vấn danh sách bản tin từ bảng `news` theo id.
+def fetch_news_by_ids(ids: list[int]) -> list[dict]:
+    """
+    Truy vấn danh sách bản tin từ bảng `news` theo id.
     
-#     :param ids: List[int] các ID bài viết.
-#     :return: List[dict] chứa content và metadata.
-#     """
-#     if not ids:
-#         return []
+    :param ids: List[int] các ID bài viết.
+    :return: List[dict] chứa content và metadata.
+    """
+    if not ids:
+        return []
     
-#     query = """
-#         SELECT id, content, news_type, sec_cd, market_cd, news_date, score, manual_score, source
-#         FROM news
-#         WHERE id = ANY(%s);
-#     """
+    query = """
+        SELECT id, content, news_type, sec_cd, market_cd, news_date, score, manual_score, source
+        FROM news
+        WHERE id = ANY(%s);
+    """
 
-#     with get_pg_connection() as conn:
-#         with conn.cursor() as cur:
-#             cur.execute(query, (ids,))
-#             results = cur.fetchall()
+    with get_pg_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (ids,))
+            results = cur.fetchall()
 
-#     columns = [
-#     "id", "content", "news_type", "sec_cd", "market_cd",
-#     "news_date", "score", "manual_score", "source"
-#     ]
-#     results = [dict(zip(columns, row)) for row in results]
+    columns = [
+    "id", "content", "news_type", "sec_cd", "market_cd",
+    "news_date", "score", "manual_score", "source"
+    ]
+    results = [dict(zip(columns, row)) for row in results]
 
-#     return results
+    return results
 
 def fetch_newest_info(news_date: int):
     query = """
@@ -206,4 +178,4 @@ def fetch_newest_info(news_date: int):
     return results
 
 if __name__=="__main__":
-    create_chunked_news_tables()
+    pass
