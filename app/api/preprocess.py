@@ -1,5 +1,5 @@
 from ast import Continue
-from app.db.postgre import get_all_pending_preprocess, update_status, insert_chunked_news
+from app.db.postgre import get_all_pending_preprocess, update_status
 from app.db.qdrant import insert_vector, get_similar_vectors
 from app.utils.vectorizer import convert_to_vector
 from app.utils.chunking import chunking_document
@@ -52,7 +52,6 @@ def check_and_update_duplicates(threshold: float):
                     })
             else:
                 chunk_id = str(uuid.uuid4())
-                # insert_chunked_news(chunk_id, current_id, chunk_idx, chunk)
                 insert_vector(chunk_id, vector, current_id, chunk, source_domain, current_date, status)
                 # update_status(current_id, 1)
                 results.append({

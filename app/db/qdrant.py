@@ -33,7 +33,6 @@ def create_collection():
         print(f"Lỗi khi tạo collection: {str(e)}")
 
 
-# id, chunk_content, source, news_date, status
 def insert_vector(article_id, vector, news_id, chunk_content, source, news_date, status):
     if not isinstance(vector, list):
         vector = vector.tolist()
