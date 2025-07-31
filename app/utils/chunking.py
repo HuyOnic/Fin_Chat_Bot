@@ -8,6 +8,7 @@ def chunking_document(document, chunk_size=800, chunk_overlap=100):
         chunk_overlap=chunk_overlap
     )
     chunks = spliter.split_text(document)
+    chunks = [chunk for chunk in chunks if len(chunk) >= 40]
     return chunks
 
 def split_sentences(text):

@@ -7,7 +7,7 @@ env_path = Path(__file__).resolve().parent.parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 MODEL_DIR = os.getenv("SENTIMENT_MODEL_ID", "wonrax/phobert-base-vietnamese-sentiment")
-sentiment_device = "cuda:0"
+sentiment_device = "cuda:1"
 
 def count_parameters(model):
     total_params = sum(p.numel() for p in model.parameters())
