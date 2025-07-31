@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os, json, re
 
-from app.db.qdrant import get_similar_vectors
-from app.db.postgre import fetch_news_by_ids
+from app.db.qdrant import get_documents_by_vector
+
 from app.llm.prompt_builder import build_prompt, basic_system_prompt
 from app.retriever.hybrid_retriever import HybridRetriever
 from app.retriever.dense_retriever import DenseRetriever
@@ -69,12 +69,7 @@ def ask_bot(question: str):
     print("Convert vector time:", time()-start)
 
     start = time()
-    results = get_similar_vectors(vector, top_k=3, threshold=0.70)
-    ids = [r[0] for r in results]
-    print("Get similar vector time:", time()-start)
-
-    start = time()
-    docs = fetch_news_by_ids(ids)
+    docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
     print("Answer from document:",docs)
     print("Fetch news time:", time() - start)
     
@@ -92,16 +87,14 @@ def retrieve(message):
         if vector is None:
             raise ValueError("Không thể chuyển câu hỏi thành vector.")
 
-        # 2. Tìm các vector tương tự
-        similar_vectors = get_similar_vectors(vector, threshold=0.7) or []
+        # 2. Truy vấn nội dung trong Qdrant
+        docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
 
         # 3. Chọn prompt phù hợp và context
-        if not similar_vectors:
+        if not docs:
             context = "Không truy vấn được nội dung cần tìm"
         else:
-            ids = [sv[0] for sv in similar_vectors]
-            docs = fetch_news_by_ids(ids) or []
-            context = "\n\n".join(doc.text for doc in docs)
+            context = "\n\n".join(doc["content"] for doc in docs)
         return context
     except Exception as e:
         print(e)
@@ -113,18 +106,17 @@ def chat_bot(message: str) -> str:
         if vector is None:
             raise ValueError("Không thể chuyển câu hỏi thành vector.")
 
-        # 2. Tìm các vector tương tự
-        similar_vectors = get_similar_vectors(vector, threshold=0.7) or []
-        print("Tìm được:", len(similar_vectors))
+        # 2. Truy vấn nội dung trong Qdrant
+        docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
+
+        print("Tìm được:", len(docs))
         # 3. Chọn prompt phù hợp và context
-        if not similar_vectors:
+        if not docs:
             prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_PROMPT)
             context = ""
         else:
             prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT)
-            ids = [sv[0] for sv in similar_vectors]
-            docs = fetch_news_by_ids(ids) or []
-            context = "\n\n".join(doc.text for doc in docs)
+            context = "\n\n".join(doc["content"] for doc in docs)
 
         # 4. Tạo pipeline chain
         rag_chain = (
@@ -256,18 +248,16 @@ def sentiment_news(message: str):
         if vector is None:
             raise ValueError("Không thể chuyển câu hỏi thành vector.")
 
-        # 2. Tìm các vector tương tự
-        similar_vectors = get_similar_vectors(vector, threshold=0.7) or []
+        # 2. Truy vấn nội dung trong Qdrant
+        docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
 
         # 3. Chọn prompt phù hợp và context
-        if not similar_vectors:
+        if not docs:
             prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_PROMPT)
             context = ""
         else:
             prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT)
-            ids = [sv[0] for sv in similar_vectors]
-            docs = fetch_news_by_ids(ids) or []
-            context = "\n\n".join(doc.text for doc in docs)
+            context = "\n\n".join(doc["content"] for doc in docs)
 
         # 4. Tạo pipeline chain
         rag_chain = (
