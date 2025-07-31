@@ -52,7 +52,13 @@ def check_and_update_duplicates(threshold: float):
                     })
             else:
                 chunk_id = str(uuid.uuid4())
-                insert_vector(chunk_id, vector, current_id, chunk, source_domain, current_date, status)
+                insert_vector(
+                    article_id=chunk_id,
+                    vector=vector,
+                    payload_keys=["news_id", "content", "source", "news_date", "status"],
+                    payload_values=[current_id, chunk, source_domain, current_date, status]
+                )
+
                 # update_status(current_id, 1)
                 results.append({
                     "current_id": current_id,
