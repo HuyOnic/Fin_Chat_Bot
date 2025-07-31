@@ -263,15 +263,14 @@ class RouterAgent():
         for content_type in content_types:
             if content_type.strip() in not_content_types:
                 stock_codes.append(content_type.strip())
-        print("STOCK_CODE", stock_codes)
         content_types = [c.strip() for c in content_types if c.strip() not in not_content_types]
-        if len(stock_codes)==0:
-            stock_codes = re.findall(r'\b[A-Z]{3,5}\b', question)
+        # if len(stock_codes)==0:
+        #     stock_codes = re.findall(r'\b[A-Z]{3,5}\b', question)
         if ("UPCOMP" in raw_text) or ("UPCOM" in raw_text):
             stock_codes.append("UPCOMP")
         not_stock_codes = ["HSX", "VN", "ATO", "OTP", "ALL"]
         stock_codes = [stock_code for stock_code in stock_codes if stock_code not in not_stock_codes]
-        return ",".join(content_types).replace(" ",""), ",".join(stock_codes), len(stock_codes)*3
+        return ",".join(content_types).replace(" ","").replace("ROE","roe"), ",".join(stock_codes), len(stock_codes)*3
     
     def output_parser(self, intent, question: str, contentType: str, secCd: str, session_id: str, user_id: str):
         if secCd is None:
