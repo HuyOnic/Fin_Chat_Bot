@@ -3,6 +3,7 @@ from app.api.crawl import run_crawler
 from app.api.preprocess import check_and_update_duplicates
 from app.api.update_sentiment import update_sentiment
 from app.api.chatbot_engine import ask_bot, chat_bot, rounting, sentiment_news, sentiment_vn30f1m
+from app.db.postgre import insert_news
 from pydantic import BaseModel
 import requests
 
@@ -27,12 +28,12 @@ def run_pipeline(
     try:
         # # 1️. Crawl dữ liệu
         print("Bắt đầu Crawl dữ liệu...")
-        crawl_result = run_crawler(crawl_source, days)
-        print("Crawl thành công!")
+        all_data = run_crawler(crawl_source, days)
+        if all_data: insert_news(all_data)
 
         # # 2️. Kiểm tra trùng lặp dữ liệu
         print("Bắt đầu kiểm tra trùng lặp dữ liệu...")
-        preprocess_result = check_and_update_duplicates(threshold)
+        preprocess_result = check_and_update_duplicates(all_data, threshold)
         print("Kiểm tra trùng lặp thành công!")
 
         # 3️. Cập nhật Sentiment Score

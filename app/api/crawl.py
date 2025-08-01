@@ -1,6 +1,6 @@
 from app.news_crawler.crawl_cafef import cafefCrawler
 from app.news_crawler.crawl_vietstock import vietstockCrawler
-from app.db.postgre import insert_news
+
 
 def run_crawler(crawl_source: str, days: int):
     if days < 1:
@@ -22,12 +22,4 @@ def run_crawler(crawl_source: str, days: int):
         return {"error": "Nguồn không hợp lệ. Chọn 'cafef', 'vietstock' hoặc 'all'."}
 
     all_data = global_stocks + market_analysis + macro_economy
-    if all_data:
-        insert_news(all_data)
-
-    return {
-        "source": crawl_source,
-        "days": days,
-        "total_articles": len(all_data),
-        "status": "Crawl dữ liệu thành công"
-    }
+    return all_data
