@@ -1,4 +1,4 @@
-import os
+import os, requests
 from dotenv import load_dotenv
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
@@ -27,16 +27,13 @@ except Exception as e:
     raise
 
 def sentiment_analysis(content_list: list):
-    inputs = sentiment_tokenizer(
-        content_list,
-        return_tensors="pt",
-        truncation=True,
-        padding=True,
-    ).to(sentiment_device)
-    logits = sentiment_model(**inputs).logits
-    probs = F.softmax(logits, dim=1)
-    scores = probs[:, 0]*-1 + probs[:, 1]*0 + probs[:, 2]*1
-    return scores
+    url = "http://localhost:8082/sentiment/predict"
+    data = {"content_list": content_list}
+    try:
+        response = requests.post(url, data)
+        return response.json()["scores"]
+    except Exception as e:
+        print("Lỗi khi gọi API sentiment:", e)
 
 if __name__=="__main__":
     pass
