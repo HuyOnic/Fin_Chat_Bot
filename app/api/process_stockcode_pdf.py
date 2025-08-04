@@ -10,6 +10,7 @@ def process_stockcode_pdf(input_dir):
     files = get_files_in_directory(input_dir)
     for f in files:
         if f.endswith(".pdf"):
+            file_name = f.split("/")[-1][:-4]
             print(f"Processing file: {f}")
             markdown_content = convert_pdf_to_markdown(f)
             chunks = chunking_document(markdown_content)
@@ -19,8 +20,8 @@ def process_stockcode_pdf(input_dir):
                 insert_vector(
                     article_id=chunk_id,
                     vector=vector,
-                    payload_keys=["content"],
-                    payload_values=[chunk],
+                    payload_keys=["content", "source"],
+                    payload_values=[chunk, file_name],
                     collection_name=STOCKCODE_COLLECTION_NAME
                 )         
 

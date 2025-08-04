@@ -48,12 +48,12 @@ def run_pipeline(
     try:
         # # 1️. Crawl dữ liệu
         print("Bắt đầu Crawl dữ liệu...")
-        crawl_result = run_crawler(crawl_source, days)
-        print("Crawl thành công!")
+        all_data = run_crawler(crawl_source, days)
+        if all_data: insert_news(all_data)
 
         # # 2️. Kiểm tra trùng lặp dữ liệu
         print("Bắt đầu kiểm tra trùng lặp dữ liệu...")
-        preprocess_result = check_and_update_duplicates(threshold)
+        preprocess_result = check_and_update_duplicates(all_data, threshold)
         print("Kiểm tra trùng lặp thành công!")
 
         # 3️. Cập nhật Sentiment Score
