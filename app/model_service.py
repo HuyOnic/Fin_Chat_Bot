@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, RobertaForSequenceClassification
 from sentence_transformers import SentenceTransformer
 import uvicorn
 
@@ -61,8 +61,8 @@ class ModelLoader:
 
     def _load_sentiment_model(self):
         model_id = os.getenv("SENTIMENT_MODEL_ID", "wonrax/phobert-base-vietnamese-sentiment")
-        self.models["sentiment_tokenizer"] = AutoTokenizer.from_pretrained(model_id)
-        self.models["sentiment_model"] = AutoModelForSequenceClassification.from_pretrained(model_id).to(self.device)
+        self.models["sentiment_tokenizer"] = AutoTokenizer.from_pretrained(model_id, use_fast=False)
+        self.models["sentiment_model"] = RobertaForSequenceClassification.from_pretrained(model_id, num_labels=3).to(self.device)
 
 # --------------------------
 # FastAPI Application
@@ -152,8 +152,7 @@ def encode_texts(request: ListRequest):
     except Exception as e:
         logger.error(f"Embedding generation error: {str(e)}")
         raise HTTPException(status_code=500, detail="Embedding generation failed")
-
-@app.post("/sentiment/predict", response_model=SentimentResponse, tags=["Sentiment Analysis"])
+@app.post("/sentiment/predict")
 def predict_sentiment(request: ListRequest):
     """
     Predict sentiment scores for a list of texts
@@ -161,23 +160,30 @@ def predict_sentiment(request: ListRequest):
     try:
         tokenizer = model_loader.models["sentiment_tokenizer"]
         model = model_loader.models["sentiment_model"]
-        
+        model.eval()
+
+        # Token hóa batch
         inputs = tokenizer(
             request.items,
-            return_tensors="pt",
-            truncation=True,
             padding=True,
-            max_length=512
+            truncation=True,
+            max_length=256,
+            return_tensors="pt"
         ).to(model_loader.device)
 
         with torch.no_grad():
-            logits = model(**inputs).logits
+            outputs = model(**inputs)  # ✅ sửa ở đây
+            logits = outputs.logits
 
-        probs = torch.nn.functional.softmax(logits, dim=1)
+        probs = torch.nn.functional.softmax(logits, dim=-1).cpu()
+
+        # Tính điểm cảm xúc: NEG*(-1) + NEU*0 + POS*1
         scores = probs[:, 0]*-1 + probs[:, 1]*0 + probs[:, 2]*1
+
         return {"scores": scores.tolist()}
+
     except Exception as e:
-        logger.error(f"Sentiment prediction error: {str(e)}")
+        print(f"Sentiment prediction error: {str(e)}")
         raise HTTPException(status_code=500, detail="Sentiment prediction failed")
 
 # --------------------------

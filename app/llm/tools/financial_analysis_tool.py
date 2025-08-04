@@ -2,6 +2,7 @@
 import requests
 from pprint import pprint
 import json
+from langchain.agents import Tool
 #API này đang bị lỗi, trả về '{"status":"SUCCESS","arg":null}'
 
 def get_financial_analysis(secCd, contentType, language, jwt_token):
