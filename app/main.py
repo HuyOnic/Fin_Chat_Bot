@@ -2,7 +2,8 @@ from fastapi import FastAPI, Query
 from app.api.crawl import run_crawler
 from app.api.preprocess import check_and_update_duplicates
 from app.api.update_sentiment import update_sentiment
-from app.api.chatbot_engine import ask_bot, chat_bot, rounting, sentiment_news, sentiment_vn30f1m, chat_pipeline
+from app.api.chatbot_engine import ask_bot, chat_bot, rounting, sentiment_news, sentiment_vn30f1m
+from app.api.chatbot_engine import chat_pipeline
 from app.db.postgre import insert_news
 from pydantic import BaseModel
 import requests, time, json
