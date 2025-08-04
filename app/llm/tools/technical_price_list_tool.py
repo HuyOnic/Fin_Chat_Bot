@@ -4,8 +4,7 @@ from pprint import pprint
 import json
 #API này đang bị lỗi, trả về '{"status":"SUCCESS","arg":null}'
 import re
-
-import re
+from langchain.agents import Tool
 
 def simplify_analysis(raw_data) -> str:
     def strip_html_tags(text):
@@ -55,12 +54,9 @@ def simplify_analysis(raw_data) -> str:
         stock_context.append("Tổng kết:")
         stock_context.extend(summaries if summaries else ["- (Không có tổng kết)"])
         stock_context.append("=" * 50)
-
         context_parts.append("\n".join(stock_context))
 
     return "\n\n".join(context_parts)
-
-
 
 def get_technical_price_list(secCd, contentType, language, jwt_token):
     url = "https://api-ai.goline.vn/api/public/chat-management/test"
@@ -102,6 +98,23 @@ def get_technical_price_list(secCd, contentType, language, jwt_token):
         return simplify_analysis(json.loads(json.loads(response.text)["data"]["data"])["data"])
     except Exception as e:
         print("Lỗi khi gọi market API:", e)
+
+def get_technical_price_list_wrapper(input: str):
+    try:
+        args = json.loads(input)
+        return get_technical_price_list(
+            secCd=args["secCd"],
+            contentType=args["contentType"],
+            language=args["language"],
+            jwt_token=args["jwt_token"]
+        )
+    except Exception as e:
+        return f"Lỗi khi xử lý input của mrktsec_quotes_detail {e}"
+
+def technical_price_list_tool():
+    return Tool(name="get_technical_price",
+                func=get_technical_price_list_wrapper,
+                description="Công cụ lấy chỉ số phân tích kỹ thuật (TA) như: MA, RSI, ROE, ... của mã chứng khoán")
 
 if __name__=="__main__":
     secCd="VCB,ACB,SSI"
