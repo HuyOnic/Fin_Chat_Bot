@@ -54,6 +54,7 @@ Câu hỏi: {question}
 
 STOCK_PRICE_PROMPT = """Hãy trả lời cho người dùng câu hỏi về giá và ngành hàng của mã chứng khoán dựa vào thông tin dưới đây
 Trả lời bằng Tiếng Việt, không sử dụng Tiếng Anh.
+Không cần thêm VND vào giá.
 
 Thông tin:
 

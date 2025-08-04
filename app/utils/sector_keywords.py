@@ -39,7 +39,28 @@ sector_keywords = {
     'Sản phẩm giải trí': ['ca sĩ', 'gameshow', 'phim ảnh', 'sản phẩm giải trí', 'âm nhạc'],
     'Sản phẩm xây dựng': ['sản phẩm xây dựng'],
     'Thiết bị viễn thông': ['báo chí', 'cáp quang', 'internet', 'thiết bị viễn thông', 'truyền hình'],
-    'Thiết bị và dịch vụ năng lượng': ['thiết bị và dịch vụ năng lượng'],
+    'Thiết bị và dịch vụ năng lượng': [
+        "giàn khoan", "thiết bị khoan", "dầu khí ngoài khơi", "hệ thống đường ống",
+        "thiết bị khai thác", "hệ thống nén khí", "hệ thống bơm", "turbine",
+        "bộ trao đổi nhiệt", "máy phát điện", "trạm nén", "cơ điện năng lượng",
+
+        "dịch vụ khoan", "bảo trì thiết bị", "dịch vụ vận hành", "kỹ thuật giếng khoan",
+        "kiểm định an toàn", "dịch vụ địa vật lý", "thi công đường ống",
+        "sửa chữa giàn khoan", "hỗ trợ kỹ thuật",
+
+        "thăm dò dầu khí", "sản xuất dầu thô", "mỏ khí đốt", "năng lượng tái tạo",
+        "nhà máy lọc dầu", "chuỗi cung ứng năng lượng", "năng lượng hạ nguồn", "năng lượng thượng nguồn",
+
+        "hợp đồng EPC", "đầu tư công trình năng lượng", "M&A ngành năng lượng",
+        "đấu thầu thiết bị", "dự án năng lượng", "trúng thầu", "gói thầu",
+
+        "PV Drilling", "Schlumberger", "Halliburton", "Baker Hughes", "PTSC",
+        "tổng thầu EPC", "nhà cung cấp dịch vụ giếng khoan",
+
+        "sản lượng khai thác", "giá dầu", "chi phí khai thác", "nhu cầu tiêu thụ",
+        "tăng vốn đầu tư", "giảm vốn đầu tư", "dừng hoạt động giàn khoan",
+        "khủng hoảng năng lượng", "thiếu hụt thiết bị"
+        ],
     'Thiết bị và vật tư chăm sóc sức khỏe': ['thiết bị và vật tư chăm sóc sức khỏe'],
     'Thiết bị điện': ['bóng đèn', 'công tắc', 'dây điện', 'thiết bị điện', 'ổ cắm'],
     'Thuốc lá': ['thuốc lá'],
