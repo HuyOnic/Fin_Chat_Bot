@@ -1,5 +1,5 @@
 from ast import Continue
-from app.db.postgre import get_all_pending_preprocess, update_status
+from app.db.postgre import get_last_news_id, update_status
 from app.db.qdrant import insert_vector, get_similar_vectors
 from app.utils.vectorizer import convert_to_vector
 from app.utils.chunking import chunking_document
@@ -15,11 +15,18 @@ def convert_news_date(news_date):
         # Nếu không đúng định dạng, vẫn trả về ngày hiện tại
         return datetime.now()
 
-def check_and_update_duplicates(threshold: float):
+def check_and_update_duplicates(all_data, threshold: float):
     print(f"Bắt đầu kiểm tra trùng lặp (threshold={threshold})")
+    len_data = len(all_data)
+    id = get_last_news_id()
+    if id is None:
+        id = len_data
 
-    all_data = get_all_pending_preprocess()
-    all_data = [(row[0], row[1], convert_news_date(row[2]), row[3], row[4]) for row in all_data]
+    all_data = [(id + 1 - len_data + i, 
+                 data['content'],
+                 data['news_date'],
+                 data['source'],
+                 data['status'],) for i, data in enumerate(all_data)]
 
     if not all_data:
         print("Không có dữ liệu để kiểm tra")
