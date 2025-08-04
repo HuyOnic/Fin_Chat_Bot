@@ -1,5 +1,6 @@
 import requests, json
 import re
+from langchain.agents import Tool
 
 def extract_text_only(html_items):
     return "\n".join([re.sub(r'<.*?>', '', item["data"]).strip() for item in html_items])
@@ -47,6 +48,23 @@ def get_mrktsec_quotes_detail(secCd, contentType, language, jwt_token):
     
     except Exception as e:
         print("Lỗi khi gọi market API:", e)
+
+def get_mrktsec_quotes_detail_wrapper(input: str):
+    try:
+        args = json.loads(input)
+        return get_mrktsec_quotes_detail(
+            secCd=args["secCd"],
+            contentType=args["contentType"],
+            language=args["language"],
+            jwt_token=args["jwt_token"]
+        )
+    except Exception as e:
+        return f"Lỗi khi xử lý input của mrktsec_quotes_detail {e}"
+
+def mrktsec_quotes_detail_tool():
+    return Tool(name="mrktsec_quotes_detail",
+                func=get_mrktsec_quotes_detail_wrapper,
+                description="Công cụ lấy giá và ngành hàng của mã chứng khoán")
 
 if __name__=="__main__":
     secCd="BCG,ACB"
