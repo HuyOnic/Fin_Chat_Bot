@@ -199,7 +199,7 @@ def qdrant2csv(limit=1000, collection_name=COLLECTION_NAME):
     print(f"Đã xuất {len(df)} bản ghi ra file qdrant_export.csv")
 
 if __name__=="__main__":
-    create_collection()
+    create_collection("fiinquant_documents")
     # vector = torch.rand(1024).numpy()
     # sim = get_similar_vectors(vector)
     # insert_vector(1, vector, "cafef")

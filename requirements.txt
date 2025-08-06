@@ -1,3 +1,4 @@
+#python version 3.10.18
 fastapi
 uvicorn
 requests
@@ -16,6 +17,7 @@ langchain-community
 langgraph
 langchain-huggingface
 langchain-community
+langgraph==0.6.3
 onnx
 optimum[onnxruntime]
 tensorrt
