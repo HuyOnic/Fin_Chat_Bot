@@ -45,5 +45,4 @@ def extract_sector_sentences(news, sector_keywords):
                     matched = matched_sentences.setdefault(sector, {"sentence": [], "source": []})
                     matched["sentence"].append(sent)
                     matched["source"].append(source)
-
     return matched_sentences

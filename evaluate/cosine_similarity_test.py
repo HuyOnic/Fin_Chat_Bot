@@ -4,6 +4,7 @@ from sentence_transformers import SentenceTransformer, util
 from tqdm import tqdm
 from openai import OpenAI
 import os
+from .perplexity_test import compute_perplexity
 
 summarize_model = OpenAI(
     # model=os.getenv("LLM_MODEL_NAME"),

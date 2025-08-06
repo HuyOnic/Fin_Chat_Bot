@@ -2,6 +2,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
+from langchain.agents import initialize_agent, AgentType
+from langgraph.graph import StateGraph, END
 import pandas as pd
 import numpy as np
 from time import time
@@ -10,7 +12,6 @@ from dotenv import load_dotenv
 import os, json, re
 
 from app.db.qdrant import get_documents_by_vector
-
 from app.llm.prompt_builder import build_prompt, basic_system_prompt
 from app.retriever.hybrid_retriever import HybridRetriever
 from app.retriever.dense_retriever import DenseRetriever
@@ -25,6 +26,7 @@ from app.utils.sector_keywords import sector_keywords
 from app.utils.chunking import extract_sector_sentences, split_sentences
 from app.llm.tools import *
 
+
 load_dotenv()
 print("OpenAI client:", os.getenv("OPENAI_API_BASE_URL"), "Key:", os.getenv("OPEN_API_KEY"))
 
@@ -34,7 +36,15 @@ llm = ChatOpenAI(
     api_key=os.getenv("OPEN_API_KEY"),
     temperature=0
 )
+mrktsec_quotes_detail_tool = mrktsec_quotes_detail_tool()
+technical_price_list_tool = technical_price_list_tool()
 
+ta_agent = initialize_agent(
+    tools=[mrktsec_quotes_detail_tool, technical_price_list_tool],
+    llm=llm,
+    agent=AgentType.OPENAI_FUNCTIONS,
+    verbose=True
+)
 agent = RouterAgent(intent_tokenizer_ckt="models/phobert_tokenizer",
                     intent_model_ckt="models/intent_classifier",
                     entity_tokenizer_ckt="models/vit5_tokenizer",
@@ -142,10 +152,28 @@ def post_processing(answer):
     vietnamese_answer = answer.split("Translation:")[0]
     return vietnamese_answer
 
+def chat_pipeline(message: str):
+    intent, secCd, contentType = agent.inference(message, "0", "0")
+    input = json.dumps({
+        "question": message,
+        "secCd": secCd,
+        "contentType": contentType,
+        "language": "VI",
+        "jwt_token": os.getenv("MARKET_API_TOKEN")
+    })
+    output = ta_agent.run(input)
+    print(output)
+
 def rounting(message: str):
     try:
+        if "sentiment" in message.lower():
+            if "vn30" in message.lower():
+                return sentiment_vn30f1m()
+            else:
+                response =  sentiment_news(message)
+                return response
+            
         intent, secCd, contentType = agent.inference(message, "0", "0")
-        print(intent, secCd, contentType)
         if intent=="account_info": # done
             context = get_display_account_info(contentType=contentType, language=language, jwt_token=market_api_token)
             prompt = ChatPromptTemplate.from_template(ANSWER_NOT_SUPPORT_PROMPT)
@@ -243,9 +271,8 @@ def rounting(message: str):
 def sentiment_news(message: str):
     intent, secCd, contentType = agent.inference(message, "0", "0")
     try:
-        
-        sentiment_prompt = ChatPromptTemplate.from_template(sentiment_analysis_by_secCd(secCd.split(",")))
-
+        sentiment_prompt = sentiment_analysis_by_secCd(secCd.split(","))
+        return sentiment_prompt
         # 1. Chuyển đổi câu hỏi thành vector
         dense_vector = convert_to_dense_vector(message)
         sparse_vector = convert_to_sparse_vector(message)
@@ -291,19 +318,18 @@ def sentiment_analysis_by_secCd(secCds: list):
         print("extract sector:", time()-start)
 
         selected_sentence = extracted_sector_sentences.get(nhom_nganh, None)
-        
+        print("Số sentence ảnh hưởng:", len(selected_sentence))
         if len(selected_sentence):
             sentences = selected_sentence["sentence"]
             sources = selected_sentence["source"]
 
             start = time()
             scores = sentiment_analysis(sentences)
-            print('Sentiment analysis', time()-start)
-
+            print("số scores: ",len(scores))
             # BUILD PROMPS
             prompt = f"Theo phân tích dựa trên những tin tức gần đây nhất cho mã {secCd}"
             for i in range(len(scores)):
-                score = scores[i].item()
+                score = scores[i]
                 prompt+=f"\n📢 Nguồn tin {sources[i]} Sentiment Score:{score}"
                 if score >= 0.5:
                     prompt+="\n=> Tin tức tích cực, giá của mã sẽ tăng"
@@ -311,37 +337,34 @@ def sentiment_analysis_by_secCd(secCds: list):
                     prompt+="\n=> Tin tức tiêu cực, giá của mã sẽ giảm"
                 else:
                     prompt+="\n=> Tin tức trung lập"
+            prompt += f"\nSentiment score trung bình cho mã {secCd} là: {sum(scores)/len(scores)}"
             return prompt
 
         else:
             print(f"Không tìm thấy dữ liệu tin tức mới nhất về ngành {nhom_nganh}")
 
 def sentiment_vn30f1m():
-    try:
-        yesterday_timestamp = (datetime.now() - timedelta(days=1)).replace(hour=8, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
-        news = fetch_newest_info(yesterday_timestamp)
-        print(f"Tìm thấy {len(news)} tin tức mới nhất. Đang tiến hành phân tích...")
-        sentiment_results={}
+    yesterday_timestamp = (datetime.now() - timedelta(days=1)).replace(hour=8, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
+    news = fetch_newest_info(yesterday_timestamp)
+    print(f"Tìm thấy {len(news)} tin tức mới nhất. Đang tiến hành phân tích...")
+    sentiment_results={}
+    response = "Tính toán sentiment score của các mã dựa trên tin tức mới nhất:\n"
+    for idx, row in vn30_df.iterrows():
+        nhom_nganh = row["nhomNganh"].split("; ")[-1].replace("Nhom nganh", "")
+        keywords = sector_keywords[nhom_nganh]
+        impact_sentences = []
+        for new in news:
+            sentences = split_sentences(new["content"])
+            impact_sentences.extend([sentence.lower() for sentence in sentences if any(keyword.lower() in sentence.lower() for keyword in keywords)])
+        if len(impact_sentences):
+            score = np.mean(vn30_df["Tỷ trọng"] * np.mean(sentiment_analysis(impact_sentences)))
+        else:
+            score = 0
+        sentiment_results[row["maDN"]] = score
+        response+=f'{row["maDN"]} : {score}\n'
 
-        for idx, row in vn30_df.iterrows():
-            nhom_nganh = row["nhomNganh"].split("; ")[-1].replace("Nhom nganh", "")
-            keywords = sector_keywords[nhom_nganh]
-            impact_sentences = []
-            for new in news:
-                sentences = split_sentences(new["content"])
-                impact_sentences.extend([sentence.lower() for sentence in sentences if any(keyword.lower() in sentence.lower() for keyword in keywords)])
-            print("Số sentence ảnh hưởng:", len(impact_sentences))
-            if len(impact_sentences):
-                score = row["Tỷ trọng"]*sentiment_analysis(impact_sentences).mean().item()
-            else:
-                score = 0
-            sentiment_results[row["maDN"]] = score
-            print(row["maDN"], ":", score)
-        response = "Sentiment Score VN30F1M:"+str(sum(sentiment_results.values()))
-        return response
-
-    except Exception as e:
-        print(e)
+    response += "=> Dựa trên những thông tin đã phân tích ở trên. Tôi đưa ra kết luận Sentiment Score VN30F1M hôm nay là:"+str(sum(sentiment_results.values()))
+    return response
 
 if __name__=="__main__":
     sentiment_vn30f1m()
