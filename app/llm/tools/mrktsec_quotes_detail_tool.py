@@ -1,4 +1,8 @@
-import requests
+import requests, json
+import re
+
+def extract_text_only(html_items):
+    return "\n".join([re.sub(r'<.*?>', '', item["data"]).strip() for item in html_items])
 
 def get_mrktsec_quotes_detail(secCd, contentType, language, jwt_token):
     url = "https://api-ai.goline.vn/api/public/chat-management/test"
@@ -37,7 +41,10 @@ def get_mrktsec_quotes_detail(secCd, contentType, language, jwt_token):
     }
     try:
         response = requests.get(url, headers=headers, params=params, json=json_body)
-        return response.text
+        response_text = json.loads(json.loads(response.text)["data"]["data"])["data"][0]["data"][1]["data"]
+        context = f"Giá của mã {secCd}\n" + extract_text_only(response_text)
+        return context
+    
     except Exception as e:
         print("Lỗi khi gọi market API:", e)
 

@@ -12,7 +12,9 @@ import re
 
 client = Client()
 name = "QA_dataset_1"
-
+judge_model = wrappers.wrap_openai(OpenAI(
+    api_key="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"
+))
 try:
     dataset = client.create_dataset(
         dataset_name=name, description="A sample dataset in LangSmith."
@@ -54,9 +56,7 @@ def target(inputs: dict) -> dict:
         print(f"Lỗi khi gọi API: {response.status_code} - {response.text}")
         return {"answer": "Không thể trả lời câu hỏi do lỗi hệ thống."}
 
-judge_model = wrappers.wrap_openai(OpenAI(
-    api_key="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"
-))
+
 
 def correctness_evaluator(inputs: dict, outputs: dict, reference_outputs: dict):
     system_prompt = (
