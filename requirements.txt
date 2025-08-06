@@ -30,3 +30,6 @@ langsmith
 openevals
 nltk
 google-generativeai
+fastembed
+underthesea
+docling

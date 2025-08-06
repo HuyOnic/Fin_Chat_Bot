@@ -19,7 +19,7 @@ from app.db.postgre import fetch_newest_info
 from app.db.qdrant import client
 from app.llm.router_agent import RouterAgent
 from app.llm.prompts import *
-from app.utils.vectorizer import convert_to_vector
+from app.utils.vectorizer import convert_to_dense_vector, convert_to_sparse_vector
 from app.utils.sentimenizer import sentiment_analysis
 from app.utils.sector_keywords import sector_keywords
 from app.utils.chunking import extract_sector_sentences, split_sentences
@@ -65,11 +65,12 @@ language = os.getenv("LANGUAGE")
 
 def ask_bot(question: str):
     start = time()
-    vector = convert_to_vector(question)
+    dense_vector = convert_to_dense_vector(question)
+    sparse_vector = convert_to_sparse_vector(question)
     print("Convert vector time:", time()-start)
 
     start = time()
-    docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
+    docs = get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1)
     print("Answer from document:",docs)
     print("Fetch news time:", time() - start)
     
@@ -83,12 +84,13 @@ def ask_bot(question: str):
 def retrieve(message):
     try:
         # 1. Chuyển đổi câu hỏi thành vector
-        vector = convert_to_vector(message)
-        if vector is None:
+        dense_vector = convert_to_dense_vector(message)
+        sparse_vector = convert_to_sparse_vector(message)
+        if dense_vector is None:
             raise ValueError("Không thể chuyển câu hỏi thành vector.")
 
         # 2. Truy vấn nội dung trong Qdrant
-        docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
+        docs = get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1)
 
         # 3. Chọn prompt phù hợp và context
         if not docs:
@@ -102,12 +104,13 @@ def retrieve(message):
 def chat_bot(message: str) -> str:
     try:
         # 1. Chuyển đổi câu hỏi thành vector
-        vector = convert_to_vector(message)
-        if vector is None:
+        dense_vector = convert_to_dense_vector(message)
+        sparse_vector = convert_to_sparse_vector(message)
+        if dense_vector is None:
             raise ValueError("Không thể chuyển câu hỏi thành vector.")
 
         # 2. Truy vấn nội dung trong Qdrant
-        docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
+        docs = get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1)
 
         print("Tìm được:", len(docs))
         # 3. Chọn prompt phù hợp và context
@@ -244,12 +247,13 @@ def sentiment_news(message: str):
         sentiment_prompt = ChatPromptTemplate.from_template(sentiment_analysis_by_secCd(secCd.split(",")))
 
         # 1. Chuyển đổi câu hỏi thành vector
-        vector = convert_to_vector(message)
-        if vector is None:
+        dense_vector = convert_to_dense_vector(message)
+        sparse_vector = convert_to_sparse_vector(message)
+        if dense_vector is None:
             raise ValueError("Không thể chuyển câu hỏi thành vector.")
 
         # 2. Truy vấn nội dung trong Qdrant
-        docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
+        docs = get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1)
 
         # 3. Chọn prompt phù hợp và context
         if not docs:
