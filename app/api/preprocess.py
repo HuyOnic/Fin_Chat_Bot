@@ -1,7 +1,7 @@
 from ast import Continue
 from app.db.postgre import get_last_news_id, update_status
 from app.db.qdrant import insert_vector, get_similar_vectors
-from app.utils.vectorizer import convert_to_vector
+from app.utils.vectorizer import convert_to_dense_vector, convert_to_sparse_vector
 from app.utils.chunking import chunking_document
 from datetime import datetime
 import uuid
@@ -16,21 +16,26 @@ def convert_news_date(news_date):
         return datetime.now()
 
 def check_and_update_duplicates(all_data, threshold: float):
-    print(f"Bắt đầu kiểm tra trùng lặp (threshold={threshold})")
-    len_data = len(all_data)
-    id = get_last_news_id()
-    if id is None:
-        id = len_data
-
-    all_data = [(id + 1 - len_data + i, 
-                 data['content'],
-                 data['news_date'],
-                 data['source'],
-                 data['status'],) for i, data in enumerate(all_data)]
-
     if not all_data:
         print("Không có dữ liệu để kiểm tra")
         return {"message": "Không có dữ liệu để kiểm tra"}
+    
+    print(f"Bắt đầu kiểm tra trùng lặp (threshold={threshold})")
+    
+    if isinstance(all_data[0], tuple):
+        all_data = [(row[0], row[1], convert_news_date(row[2]), row[3], row[4]) for row in all_data]
+    else:
+        len_data = len(all_data)
+        id = get_last_news_id()
+        if id is None:
+            id = len_data
+
+        all_data = [(id + 1 - len_data + i, 
+                    data['content'],
+                    data['news_date'],
+                    data['source'],
+                    data['status'],) for i, data in enumerate(all_data)]
+
 
     print(f"Tổng số bài viết cần kiểm tra: {len(all_data)}")
 
@@ -45,8 +50,9 @@ def check_and_update_duplicates(all_data, threshold: float):
         chunks = chunking_document(current_content)
 
         for chunk_idx, chunk in enumerate(chunks):
-            vector = convert_to_vector([chunk])[0]
-            similar_articles = get_similar_vectors(vector, top_k=3, threshold=threshold)
+            dense_vector = convert_to_dense_vector([chunk])[0]
+            sparse_vector = convert_to_sparse_vector(chunk)
+            similar_articles = get_similar_vectors(dense_vector, top_k=3, threshold=threshold)
 
             if similar_articles:
                 for duplicate_id, similarity_score in similar_articles:
@@ -61,7 +67,8 @@ def check_and_update_duplicates(all_data, threshold: float):
                 chunk_id = str(uuid.uuid4())
                 insert_vector(
                     article_id=chunk_id,
-                    vector=vector,
+                    dense_vector=dense_vector, 
+                    sparse_vector=sparse_vector,
                     payload_keys=["news_id", "content", "source", "news_date", "status"],
                     payload_values=[current_id, chunk, source_domain, current_date, status]
                 )
