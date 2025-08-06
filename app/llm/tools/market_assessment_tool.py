@@ -40,6 +40,7 @@ def get_market_assessment(secCd, contentType, language, jwt_token):
     }
     try:
         response = requests.get(url, headers=headers, params=params, json=json_body)
+        print("API res", response.text)
         return json.loads(json.loads(response.text)["data"]["data"])["data"]
     except Exception as e:
         print("Lỗi khi gọi market API:", e)

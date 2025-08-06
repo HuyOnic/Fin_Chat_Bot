@@ -1,6 +1,41 @@
 #http://10.10.3.31:7000/market/api/public/mrktsec-quotes-detail?secCd=SSI&contentType=lastPrice&language=VI
 import requests, json
 from pprint import pprint
+import re
+
+def strip_html_tags(text):
+    """Loại bỏ thẻ HTML và giữ lại văn bản gốc"""
+    return re.sub(r'<[^>]+>', '', text).strip()
+
+def convert_index_contribution_to_context(blocks) -> str:
+    title = ""
+    positive_heading = ""
+    positive_contributions = []
+
+    for block in blocks:
+        if block["type"] == "div":
+            if block.get("class") == "cb-title":
+                title = block.get("data", "")
+            elif block.get("class") == "cb-heading":
+                positive_heading = block.get("data", "")
+        elif block["type"] == "list":
+            for item in block.get("data", []):
+                if item["type"] == "html":
+                    clean = strip_html_tags(item["data"])
+                    positive_contributions.append(f"- {clean}")
+
+    # Ghép thành chuỗi context
+    parts = []
+    if title:
+        parts.append(f"{title}:")
+    if positive_heading:
+        parts.append(f"{positive_heading}")
+    if positive_contributions:
+        parts.extend(positive_contributions)
+    else:
+        parts.append("- (Không có dữ liệu)")
+
+    return "\n".join(parts)
 
 def get_top_index_contribution(secCd, contentType, language, jwt_token):
     url = "https://api-ai.goline.vn/api/public/chat-management/test"
@@ -39,7 +74,9 @@ def get_top_index_contribution(secCd, contentType, language, jwt_token):
     }
     try:
         response = requests.get(url, headers=headers, params=params, json=json_body)
-        return json.loads(response.text)["data"]["data"]
+        print(response.text)
+        context = json.loads(json.loads(response.text)["data"]["data"])["data"]
+        return convert_index_contribution_to_context(context)
     except Exception as e:
         print("Lỗi khi gọi market API:", e)
 
