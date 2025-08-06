@@ -94,7 +94,7 @@ def senmatic_similarity_test():
         try:
             predicted_answer = rounting(question) # goi truc tiep rounting thay vi goi api tu localhost.
         except Exception as e:
-            print(f"❌ Lỗi API cho câu hỏi: {question} → {e}")
+            print(f"❌ Lỗi trả lời cho câu hỏi: {question} → {e}")
 
         result_df.at[idx, "predicted_answer"] = predicted_answer
 
