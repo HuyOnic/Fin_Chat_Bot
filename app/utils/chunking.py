@@ -2,11 +2,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 import pandas as pd 
 import re
 
-def chunking_document(document, chunk_size=800, chunk_overlap=100):
-    spliter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap
-    )
+def chunking_document(document, chunk_size=1024, chunk_overlap=256):
+    spliter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        )
     chunks = spliter.split_text(document)
     chunks = [chunk for chunk in chunks if len(chunk) >= 40]
     return chunks
