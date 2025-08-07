@@ -15,8 +15,8 @@ def process_stockcode_pdf(input_dir):
             markdown_content = convert_pdf_to_markdown(f)
             chunks = chunking_document(markdown_content)
             for chunk in chunks:
-                dense_vector = convert_to_dense_vector([chunk])[0]       
-                sparse_vector = convert_to_sparse_vector(chunk)
+                dense_vector = convert_to_dense_vector([f"source: {file_name} \n {chunk}"])[0]
+                sparse_vector = convert_to_sparse_vector(f"source: {file_name} \n {chunk}")
                 chunk_id = str(uuid.uuid4())
                 insert_vector(
                     article_id=chunk_id,
@@ -26,5 +26,3 @@ def process_stockcode_pdf(input_dir):
                     payload_values=[chunk, file_name],
                     collection_name=STOCKCODE_COLLECTION_NAME
                 )         
-
-                
