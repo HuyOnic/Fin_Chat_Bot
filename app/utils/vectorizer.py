@@ -3,23 +3,33 @@ from dotenv import load_dotenv
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+from fastembed import SparseTextEmbedding
+from app.utils.utils import preprocess_text
 env_path = Path(__file__).resolve().parent.parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 MODEL_DIR = os.getenv("EMBEDDING_MODEL", "./models/sentence_transformers")
+SPARSE_MODEL = "Qdrant/bm25"
 #MODEL_DIR = "BAAI/bge-m3"
 print(f"Đang load model từ: {MODEL_DIR}")
 
 try:
     bert_model = SentenceTransformer(MODEL_DIR, device="cpu")
+    sparse_model = SparseTextEmbedding(SPARSE_MODEL, cache_dir="models",
+                                                          cuda=False)
     print("✅ Embedding Model đã được load thành công!")
 except Exception as e:
     print(f"Lỗi khi load model: {e}")
     raise
 
-def convert_to_vector(content_list):
+def convert_to_dense_vector(content_list):
     vectors = bert_model.encode(content_list, max_length=1024)
     return vectors
+
+def convert_to_sparse_vector(content):
+    query = preprocess_text(content)
+    sparse_vector = next(sparse_model.passage_embed([query])).as_object()
+    return sparse_vector
 
 if __name__=="__main__":
     sentence1 = ["Giá cổ phiếu ACB"]
