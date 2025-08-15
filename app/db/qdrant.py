@@ -11,7 +11,7 @@ load_dotenv()
 QDRANT_HOST = os.getenv("QDRANT_HOST")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT"))
 # COLLECTION_NAME = "news_vectors"
-COLLECTION_NAME = "news_hybrid_search"
+NEWS_COLLECTION_NAME = "news_hybrid_search"
 # STOCKCODE_COLLECTION_NAME = "stockcode_vectors"
 STOCKCODE_COLLECTION_NAME = "stockcode_hybrid_search"
 
@@ -25,7 +25,7 @@ except Exception as e:
     print("❌ Lỗi kết nối đến Qdrant:", e)
 
 
-def create_collection(collection_name=COLLECTION_NAME):
+def create_collection(collection_name=NEWS_COLLECTION_NAME):
     try:
         client.recreate_collection(
             collection_name=collection_name,
@@ -47,7 +47,7 @@ def create_collection(collection_name=COLLECTION_NAME):
         print(f"Lỗi khi tạo collection: {str(e)}")
 
 
-def insert_vector(article_id, dense_vector, sparse_vector, payload_keys, payload_values, collection_name=COLLECTION_NAME):
+def insert_vector(article_id, dense_vector, sparse_vector, payload_keys, payload_values, collection_name=NEWS_COLLECTION_NAME):
     if not isinstance(dense_vector, list):
         dense_vector = dense_vector.tolist()
 
@@ -66,7 +66,7 @@ def insert_vector(article_id, dense_vector, sparse_vector, payload_keys, payload
     )
 
 
-def _search_dense(query_vector, top_k, collection_name=COLLECTION_NAME):
+def _search_dense(query_vector, top_k, collection_name=NEWS_COLLECTION_NAME):
     if not isinstance(query_vector, list):
         query_vector = query_vector.tolist()
 
@@ -80,11 +80,11 @@ def _search_dense(query_vector, top_k, collection_name=COLLECTION_NAME):
     
     return results.points 
 
-def search_dense(query_vector, top_k=3, threshold=0.3, collection_name=COLLECTION_NAME):
+def search_dense(query_vector, top_k=3, threshold=0.3, collection_name=NEWS_COLLECTION_NAME):
     results = _search_dense(query_vector, top_k, collection_name)
     return [point for point in results if point.score >= threshold]
 
-def _search_sparse(sparse_vector_dict, top_k, collection_name=COLLECTION_NAME):
+def _search_sparse(sparse_vector_dict, top_k, collection_name=NEWS_COLLECTION_NAME):
     sparse_vector = models.SparseVector(
         indices=sparse_vector_dict["indices"],
         values=sparse_vector_dict["values"]
@@ -99,11 +99,11 @@ def _search_sparse(sparse_vector_dict, top_k, collection_name=COLLECTION_NAME):
     )
     return results.points
 
-def search_sparse(sparse_vector_dict, top_k=3, threshold=0.3, collection_name=COLLECTION_NAME):
+def search_sparse(sparse_vector_dict, top_k=3, threshold=0.3, collection_name=NEWS_COLLECTION_NAME):
     results = _search_sparse(sparse_vector_dict, top_k, collection_name)
     return [point for point in results if point.score >= threshold]
 
-def hybrid_search(dense_vector, sparse_vector, top_k=3, threshold=0.3, alpha=0.7, collection_name=COLLECTION_NAME):
+def hybrid_search(dense_vector, sparse_vector, top_k=3, threshold=0.3, alpha=0.7, collection_name=NEWS_COLLECTION_NAME):
     dense_results = _search_dense(dense_vector, top_k * 3 + 1, collection_name)
     dense_scores = normalize([point.score for point in dense_results])
     for i, point in enumerate(dense_results):
@@ -133,7 +133,7 @@ def hybrid_search(dense_vector, sparse_vector, top_k=3, threshold=0.3, alpha=0.7
     final = sorted(final, key=lambda d: d.score, reverse=True)[:top_k]
     return final
 
-def get_similar_vectors(vector, top_k=3, threshold=0.85, collection_name=COLLECTION_NAME):
+def get_similar_vectors(vector, top_k=3, threshold=0.85, collection_name=NEWS_COLLECTION_NAME):
     if not isinstance(vector, list):
         vector = vector.tolist()
 
@@ -146,7 +146,7 @@ def get_similar_vectors(vector, top_k=3, threshold=0.85, collection_name=COLLECT
     return similar_articles
 
 
-def get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1, collection_name=COLLECTION_NAME):
+def get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1, collection_name=NEWS_COLLECTION_NAME):
     if not isinstance(dense_vector, list):
         dense_vector = dense_vector.tolist()
 
@@ -156,7 +156,7 @@ def get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1,
     return docs
 
 
-def view_collection_data(limit=20, collection_name=COLLECTION_NAME):
+def view_collection_data(limit=20, collection_name=NEWS_COLLECTION_NAME):
     # Lấy dữ liệu với scroll API
     records, next_page = client.scroll(
         collection_name=collection_name,
@@ -174,7 +174,7 @@ def view_collection_data(limit=20, collection_name=COLLECTION_NAME):
     
     return records
 
-def qdrant2csv(limit=1000, collection_name=COLLECTION_NAME):
+def qdrant2csv(limit=1000, collection_name=NEWS_COLLECTION_NAME):
     points, _ = client.scroll(
         collection_name=collection_name,
         limit=limit,  # Số lượng tối đa

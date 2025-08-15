@@ -33,6 +33,9 @@ def get_files_in_directory(path):
     return files
 
 def normalize(scores):
+    if not scores:
+        return []
+    
     scores = np.array(scores, dtype=np.float32)
     mean = scores.mean()
     std = scores.std()
