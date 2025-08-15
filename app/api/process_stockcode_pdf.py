@@ -12,6 +12,7 @@ def process_stockcode_pdf(input_dir):
         if f.endswith(".pdf"):
             print(f"Processing file: {f}")
             markdown_content = convert_pdf_to_markdown(f)
+            print("HEADER", markdown_content)
             chunks = chunking_document(markdown_content)
             for chunk in chunks:
                 vector = convert_to_vector([chunk])[0]       

@@ -3,8 +3,10 @@ import requests
 from sentence_transformers import SentenceTransformer, util
 from tqdm import tqdm
 from openai import OpenAI
-import os
-from .perplexity_test import compute_perplexity
+import os, sys
+sys.path.append(os.path.abspath(os.path.join(__file__, "..")))
+from app.api.chatbot_engine import rounting
+
 
 summarize_model = OpenAI(
     # model=os.getenv("LLM_MODEL_NAME"),
@@ -41,18 +43,7 @@ def senmatic_similarity_test():
         expected_answer = str(row["answer"])
         predicted_answer = ""
 
-        try:
-            # Gọi API Chat cả local model 
-            response = requests.post(
-                "http://localhost:8081/test_chat",
-                headers={"accept": "application/json", "Content-Type": "application/json"},
-                json={"message": question},
-                timeout=20
-            )
-            if response.status_code == 200:
-                predicted_answer = response.json().get("message", "")
-        except Exception as e:
-            print(f"❌ Lỗi API cho câu hỏi: {question} → {e}")
+        predicted_answer = rounting(question)
 
         result_df.at[idx, "predicted_answer"] = predicted_answer
 

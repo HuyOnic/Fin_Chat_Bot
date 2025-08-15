@@ -9,7 +9,10 @@ from typing import List, Optional
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, RobertaForSequenceClassification
 from sentence_transformers import SentenceTransformer
 import uvicorn
-
+from fastapi import UploadFile, File, Form
+from docx import Document
+from typing import List
+from fastapi.responses import JSONResponse
 # --------------------------
 # Configuration Setup
 # --------------------------
@@ -28,15 +31,15 @@ logger = logging.getLogger(__name__)
 # --------------------------
 class ModelLoader:
     def __init__(self):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
         self.models = {}
         self.load_all_models()
 
     def load_all_models(self):
         """Load all required models with error handling"""
         try:
-            self._load_router_agent()
-            self._load_embedding_model()
+            # self._load_router_agent()
+            # self._load_embedding_model()
             self._load_sentiment_model()
             logger.info("✅ All models loaded successfully!")
         except Exception as e:
@@ -56,7 +59,7 @@ class ModelLoader:
         )
 
     def _load_embedding_model(self):
-        model_name = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
+        model_name = "./models/bge-m3"
         self.models["embed_model"] = SentenceTransformer(model_name).to(self.device)
 
     def _load_sentiment_model(self):
@@ -136,22 +139,66 @@ def router_agent_predict(request: QuestionRequest):
         logger.error(f"Router agent error: {str(e)}")
         raise HTTPException(status_code=500, detail="Router agent prediction failed")
 
-@app.post("/embedding/encode", response_model=EmbeddingResponse, tags=["Embeddings"])
-def encode_texts(request: ListRequest):
-    """
-    Generate embeddings for a list of texts
-    """
-    try:
-        embeddings = model_loader.models["embed_model"].encode(
-            request.items,
-            batch_size=32,
-            show_progress_bar=False,
-            convert_to_tensor=True
-        )
-        return {"vectors": embeddings.tolist()}
-    except Exception as e:
-        logger.error(f"Embedding generation error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Embedding generation failed")
+class EmbeddingInput(BaseModel):
+    input: List[str]
+    model: str = "text-embedding-custom"
+
+@app.get("/v1/embeddings/health")
+async def health_check():
+    return JSONResponse(
+        content={
+            "status": "ok",
+            "service": "embedding",
+            "version": "1.0.0"
+        }
+    )
+
+@app.post("/v1/embeddings/embed")
+async def embed_file(file: UploadFile = File(...), model: str = Form("bge-m3")):
+    if not file.filename.endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Only .docx files are supported.")
+
+    # Đọc nội dung file
+    contents = await file.read()
+    with open("/tmp/tmp.docx", "wb") as f:
+        f.write(contents)
+
+    doc = Document("/tmp/tmp.docx")
+    paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+    if not paragraphs:
+        raise HTTPException(status_code=400, detail="Document is empty.")
+
+    vectors = model_loader.models["embed_model"].encode(paragraphs)
+
+    return {
+        "data": [
+            {
+                "embedding": vec.tolist(),
+                "index": i,
+                "text": paragraphs[i]
+            } for i, vec in enumerate(vectors)
+        ],
+        "model": model,
+        "object": "list"
+    }
+
+
+# @app.post("v1/embeddings", response_model=EmbeddingResponse, tags=["Embeddings"])
+# def encode_texts(request: ListRequest):
+#     """
+#     Generate embeddings for a list of texts
+#     """
+#     try:
+#         embeddings = model_loader.models["embed_model"].encode(
+#             request.items,
+#             batch_size=32,
+#             show_progress_bar=False,
+#             convert_to_tensor=True
+#         )
+#         return {"vectors": embeddings.tolist()}
+#     except Exception as e:
+#         logger.error(f"Embedding generation error: {str(e)}")
+#         raise HTTPException(status_code=500, detail="Embedding generation failed")
 @app.post("/sentiment/predict")
 def predict_sentiment(request: ListRequest):
     """

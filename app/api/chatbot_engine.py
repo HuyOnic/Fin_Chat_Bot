@@ -260,10 +260,33 @@ def rounting(message: str):
             response = "Xin lỗi Quý Khách, hiện tại chúng tôi không thể trả lời câu hỏi của Quý Khách."
         else:
             response = rag_chain.invoke({"question": message, "context": context})
-        
+        print("Model Response", response)
         return response
     except Exception as e:
         print(e)
+
+def single_sentiment_secCd(stock_code: str):
+    nhom_nganh = secCd_df[secCd_df['maDN']==stock_code].loc[:, 'nhomNganh'].values[0].split("; ")[-1].replace("Nhom nganh", "")
+    yesterday_timestamp = (datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d%H%M")
+    start = time()
+    news = fetch_newest_info(int(yesterday_timestamp)) #lấy tin tức từ ngày hôm qua
+    print("fetch_news:",time()-start)
+
+    start = time()
+    extracted_sector_sentences = extract_sector_sentences(news, sector_keywords)
+    print("extract sector:", time()-start)
+
+    selected_sentence = extracted_sector_sentences.get(nhom_nganh, None)
+    print("Số sentence ảnh hưởng:", len(list(set(selected_sentence))))
+    if len(selected_sentence):
+        sentences = selected_sentence["sentence"]
+        sources = selected_sentence["source"]
+
+        start = time()
+        scores = sentiment_analysis(sentences)
+    return {"stock_code": stock_code, 
+            "sentiment_score": np.mean(scores),
+            "news_content": list(set(extracted_sector_sentences[nhom_nganh]["news_content"]))}
 
 def sentiment_news(message: str):
     intent, secCd, contentType = agent.inference(message, "0", "0")
@@ -361,6 +384,9 @@ def sentiment_vn30f1m():
 
     response += "=> Dựa trên những thông tin đã phân tích ở trên. Tôi đưa ra kết luận Sentiment Score VN30F1M hôm nay là:"+str(sum(sentiment_results.values()))
     return response
+
+def run_llm_code_sandboxed(code: str) -> str:
+        tmp_dỉ = "/tmp/"
 
 if __name__=="__main__":
     sentiment_vn30f1m()

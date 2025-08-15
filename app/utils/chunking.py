@@ -42,7 +42,8 @@ def extract_sector_sentences(news, sector_keywords):
             sent_lower = sent.lower()
             for sector, keywords in sector_keywords.items():
                 if any(kw.lower() in sent_lower for kw in keywords):
-                    matched = matched_sentences.setdefault(sector, {"sentence": [], "source": []})
+                    matched = matched_sentences.setdefault(sector, {"sentence": [], "source": [], "news_content": []})
                     matched["sentence"].append(sent)
                     matched["source"].append(source)
+                    matched["news_content"].append(item["content"])
     return matched_sentences
