@@ -293,33 +293,33 @@ def sentiment_news(message: str):
     try:
         sentiment_prompt = sentiment_analysis_by_secCd(secCd.split(","))
         return sentiment_prompt
-        # 1. Chuyển đổi câu hỏi thành vector
-        vector = convert_to_vector(message)
-        if vector is None:
-            raise ValueError("Không thể chuyển câu hỏi thành vector.")
+        # # 1. Chuyển đổi câu hỏi thành vector
+        # vector = convert_to_vector(message)
+        # if vector is None:
+        #     raise ValueError("Không thể chuyển câu hỏi thành vector.")
 
-        # 2. Truy vấn nội dung trong Qdrant
-        docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
+        # # 2. Truy vấn nội dung trong Qdrant
+        # docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
 
-        # 3. Chọn prompt phù hợp và context
-        if not docs:
-            prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_PROMPT)
-            context = ""
-        else:
-            prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT)
-            context = "\n\n".join(doc["content"] for doc in docs)
+        # # 3. Chọn prompt phù hợp và context
+        # if not docs:
+        #     prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_PROMPT)
+        #     context = ""
+        # else:
+        #     prompt = ChatPromptTemplate.from_template(ANSWER_FINANCIAL_QUESTION_FROM_CONTEXT_PROMPT)
+        #     context = "\n\n".join(doc["content"] for doc in docs)
 
-        # 4. Tạo pipeline chain
-        rag_chain = (
-            # {"context": RunnablePassthrough(), "question": RunnablePassthrough()}
-            prompt
-            | llm
-            | StrOutputParser()
-        )
+        # # 4. Tạo pipeline chain
+        # rag_chain = (
+        #     # {"context": RunnablePassthrough(), "question": RunnablePassthrough()}
+        #     prompt
+        #     | llm
+        #     | StrOutputParser()
+        # )
 
-        # 5. Run chain
-        response = rag_chain.invoke({"question": message, "context": sentiment_prompt})
-        return response
+        # # 5. Run chain
+        # response = rag_chain.invoke({"question": message, "context": sentiment_prompt})
+        # return response
 
     except Exception as e:
         print("Lỗi khi chạy pipeline:", e)
