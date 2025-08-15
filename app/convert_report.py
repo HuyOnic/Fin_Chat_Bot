@@ -1,50 +1,46 @@
-from qdrant_client import QdrantClient
 from app.db.postgre import get_all_pending_preprocess
-from app.db.qdrant import STOCKCODE_COLLECTION_NAME, NEWS_COLLECTION_NAME, create_collection
+from app.rag.collections import COLLECTIONS
 from app.api.process_stockcode_pdf import process_stockcode_pdf
 from app.api.preprocess import check_and_update_duplicates
 
-client = QdrantClient(host="localhost", port=6333)
 
 # Trạng thái hiện tại collection
-print(client.get_collection(STOCKCODE_COLLECTION_NAME))
+print(COLLECTIONS["stock"].get_collection_info())
 
 # Reset collection
-create_collection(STOCKCODE_COLLECTION_NAME)
+COLLECTIONS["stock"].recreate_collection()
 
 # Trạng thái hiện tại collection
-print(client.get_collection(STOCKCODE_COLLECTION_NAME))
+print(COLLECTIONS["stock"].get_collection_info())
 
 # Xử lý
 process_stockcode_pdf("data/raw_data")
 
 # Trạng thái hiện tại collection
-print(client.get_collection(STOCKCODE_COLLECTION_NAME))
+print(COLLECTIONS["stock"].get_collection_info())
 
 # Xong
 print("Done processing stockcode PDFs.")
 
 ##########################################################
 
-client = QdrantClient(host="localhost", port=6333)
-
 # Kiểm tra số lượng dữ liệu cần xử lý
 all_data = get_all_pending_preprocess()
 
 # Trạng thái hiện tại collection
-print(client.get_collection(NEWS_COLLECTION_NAME))
+print(COLLECTIONS["news"].get_collection_info())
 
 # Reset collection
-create_collection(NEWS_COLLECTION_NAME)
+COLLECTIONS["news"].recreate_collection()
 
 # Trạng thái hiện tại collection
-print(client.get_collection(NEWS_COLLECTION_NAME))
+print(COLLECTIONS["news"].get_collection_info())
 
 # Xử lý
-check_and_update_duplicates(0.85)
+check_and_update_duplicates(all_data, 0.85)
 
 # Trạng thái hiện tại collection
-print(client.get_collection(NEWS_COLLECTION_NAME))
+print(COLLECTIONS["news"].get_collection_info())
 
 # Xong
 print("Done processing news.") 

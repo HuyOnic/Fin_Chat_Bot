@@ -11,16 +11,14 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os, json, re
 
-from app.db.qdrant import get_documents_by_vector
+from app.rag.collections import COLLECTIONS
 from app.llm.prompt_builder import build_prompt, basic_system_prompt
 from app.retriever.hybrid_retriever import HybridRetriever
 from app.retriever.dense_retriever import DenseRetriever
 from app.retriever.sparse_retriever import SparseRetriever
 from app.db.postgre import fetch_newest_info
-from app.db.qdrant import client
 from app.llm.router_agent import RouterAgent
 from app.llm.prompts import *
-from app.utils.vectorizer import convert_to_dense_vector, convert_to_sparse_vector
 from app.utils.sentimenizer import sentiment_analysis
 from app.utils.sector_keywords import sector_keywords
 from app.utils.chunking import extract_sector_sentences, split_sentences
@@ -75,12 +73,8 @@ language = os.getenv("LANGUAGE")
 
 def ask_bot(question: str):
     start = time()
-    dense_vector = convert_to_dense_vector(question)
-    sparse_vector = convert_to_sparse_vector(question)
-    print("Convert vector time:", time()-start)
-
-    start = time()
-    docs = get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1)
+    docs = COLLECTIONS["news"].hybrid_search(question, top_k=3, threshold=0.1)
+    docs = [hit.payload for hit in docs]
     print("Answer from document:",docs)
     print("Fetch news time:", time() - start)
     
@@ -93,15 +87,9 @@ def ask_bot(question: str):
 
 def retrieve(message):
     try:
-        # 1. Chuyển đổi câu hỏi thành vector
-        dense_vector = convert_to_dense_vector(message)
-        sparse_vector = convert_to_sparse_vector(message)
-        if dense_vector is None:
-            raise ValueError("Không thể chuyển câu hỏi thành vector.")
-
         # 2. Truy vấn nội dung trong Qdrant
-        docs = get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1)
-
+        docs = COLLECTIONS["news"].hybrid_search(message, top_k=3, threshold=0.1)
+        docs = [hit.payload for hit in docs]
         # 3. Chọn prompt phù hợp và context
         if not docs:
             context = "Không truy vấn được nội dung cần tìm"
@@ -113,14 +101,9 @@ def retrieve(message):
 
 def chat_bot(message: str) -> str:
     try:
-        # 1. Chuyển đổi câu hỏi thành vector
-        dense_vector = convert_to_dense_vector(message)
-        sparse_vector = convert_to_sparse_vector(message)
-        if dense_vector is None:
-            raise ValueError("Không thể chuyển câu hỏi thành vector.")
-
         # 2. Truy vấn nội dung trong Qdrant
-        docs = get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1)
+        docs = COLLECTIONS["news"].hybrid_search(message, top_k=3, threshold=0.1)
+        docs = [hit.payload for hit in docs]
 
         print("Tìm được:", len(docs))
         # 3. Chọn prompt phù hợp và context
@@ -273,14 +256,10 @@ def sentiment_news(message: str):
     try:
         sentiment_prompt = sentiment_analysis_by_secCd(secCd.split(","))
         return sentiment_prompt
-        # 1. Chuyển đổi câu hỏi thành vector
-        dense_vector = convert_to_dense_vector(message)
-        sparse_vector = convert_to_sparse_vector(message)
-        if dense_vector is None:
-            raise ValueError("Không thể chuyển câu hỏi thành vector.")
 
         # 2. Truy vấn nội dung trong Qdrant
-        docs = get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1)
+        docs = COLLECTIONS["news"].hybrid_search(message, top_k=3, threshold=0.1)
+        docs = [hit.payload for hit in docs]
 
         # 3. Chọn prompt phù hợp và context
         if not docs:

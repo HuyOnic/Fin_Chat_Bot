@@ -1,7 +1,5 @@
-from ast import Continue
 from app.db.postgre import get_last_news_id, update_status
-from app.db.qdrant import insert_vector, get_similar_vectors
-from app.utils.vectorizer import convert_to_dense_vector, convert_to_sparse_vector
+from app.rag.collections import COLLECTIONS
 from app.utils.chunking import chunking_document
 from datetime import datetime
 import uuid
@@ -50,9 +48,7 @@ def check_and_update_duplicates(all_data, threshold: float):
         chunks = chunking_document(current_content)
 
         for chunk_idx, chunk in enumerate(chunks):
-            dense_vector = convert_to_dense_vector([chunk])[0]
-            sparse_vector = convert_to_sparse_vector(chunk)
-            similar_articles = get_similar_vectors(dense_vector, top_k=3, threshold=threshold)
+            similar_articles = COLLECTIONS['news'].get_similar_vectors(chunk, top_k=3, threshold=threshold)
 
             if similar_articles:
                 for duplicate_id, similarity_score in similar_articles:
@@ -64,14 +60,9 @@ def check_and_update_duplicates(all_data, threshold: float):
                         "status_updated": 9
                     })
             else:
-                chunk_id = str(uuid.uuid4())
-                insert_vector(
-                    article_id=chunk_id,
-                    dense_vector=dense_vector, 
-                    sparse_vector=sparse_vector,
-                    payload_keys=["news_id", "content", "source", "news_date", "status"],
-                    payload_values=[current_id, chunk, source_domain, current_date, status]
-                )
+                COLLECTIONS["news"].insert_data(payload_keys=["news_id", "content", "source", "news_date", "status"],
+                                                payload_values=[[current_id, chunk, source_domain, current_date, status]],
+                                                embedding_indices=[1, 2])
 
                 # update_status(current_id, 1)
                 results.append({
