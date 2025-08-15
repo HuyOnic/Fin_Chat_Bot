@@ -297,12 +297,13 @@ def sentiment_news(message: str):
         sentiment_prompt = sentiment_analysis_by_secCd(secCd.split(","))
         return sentiment_prompt
         # 1. Chuyển đổi câu hỏi thành vector
-        vector = convert_to_vector(message)
-        if vector is None:
+        dense_vector = convert_to_dense_vector(message)
+        sparse_vector = convert_to_sparse_vector(message)
+        if dense_vector is None:
             raise ValueError("Không thể chuyển câu hỏi thành vector.")
 
         # 2. Truy vấn nội dung trong Qdrant
-        docs = get_documents_by_vector(vector, top_k=3, threshold=0.1)
+        docs = get_documents_by_vector(dense_vector, sparse_vector, top_k=3, threshold=0.1)
 
         # # 3. Chọn prompt phù hợp và context
         # if not docs:
