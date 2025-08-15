@@ -1,6 +1,6 @@
 from qdrant_client import QdrantClient
 from app.db.postgre import get_all_pending_preprocess
-from app.db.qdrant import STOCKCODE_COLLECTION_NAME, COLLECTION_NAME, create_collection
+from app.db.qdrant import STOCKCODE_COLLECTION_NAME, NEWS_COLLECTION_NAME, create_collection
 from app.api.process_stockcode_pdf import process_stockcode_pdf
 from app.api.preprocess import check_and_update_duplicates
 
@@ -32,19 +32,19 @@ client = QdrantClient(host="localhost", port=6333)
 all_data = get_all_pending_preprocess()
 
 # Trạng thái hiện tại collection
-print(client.get_collection(COLLECTION_NAME))
+print(client.get_collection(NEWS_COLLECTION_NAME))
 
 # Reset collection
-create_collection(COLLECTION_NAME)
+create_collection(NEWS_COLLECTION_NAME)
 
 # Trạng thái hiện tại collection
-print(client.get_collection(COLLECTION_NAME))
+print(client.get_collection(NEWS_COLLECTION_NAME))
 
 # Xử lý
 check_and_update_duplicates(0.85)
 
 # Trạng thái hiện tại collection
-print(client.get_collection(COLLECTION_NAME))
+print(client.get_collection(NEWS_COLLECTION_NAME))
 
 # Xong
 print("Done processing news.") 

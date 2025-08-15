@@ -177,5 +177,16 @@ def fetch_newest_info(news_date: int):
     results = [dict(zip(columns, row)) for row in results]
     return results
 
+def get_last_news_id():
+    conn = get_pg_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM news ORDER BY id DESC LIMIT 1;")
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return result[0] if result else None
+
+
+
 if __name__=="__main__":
     pass
