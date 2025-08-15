@@ -1,7 +1,7 @@
 from app.db.postgre import get_all_pending_preprocess
 from app.rag.collections import COLLECTIONS
-from app.api.process_stockcode_pdf import process_stockcode_pdf
-from app.api.preprocess import check_and_update_duplicates
+from app.rag.indexer import insert_stock_data
+from app.rag.indexer import insert_news_data
 
 
 # Trạng thái hiện tại collection
@@ -14,7 +14,7 @@ COLLECTIONS["stock"].recreate_collection()
 print(COLLECTIONS["stock"].get_collection_info())
 
 # Xử lý
-process_stockcode_pdf("data/raw_data")
+insert_stock_data("data/raw_data")
 
 # Trạng thái hiện tại collection
 print(COLLECTIONS["stock"].get_collection_info())
@@ -37,7 +37,7 @@ COLLECTIONS["news"].recreate_collection()
 print(COLLECTIONS["news"].get_collection_info())
 
 # Xử lý
-check_and_update_duplicates(all_data, 0.85)
+insert_news_data(all_data, 0.85, True)
 
 # Trạng thái hiện tại collection
 print(COLLECTIONS["news"].get_collection_info())

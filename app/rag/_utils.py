@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from docling.document_converter import DocumentConverter
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -40,3 +41,12 @@ def chunking(text):
             )
     chunks = text_splitter.split_text(text)
     return [chunk for chunk in chunks if len(chunk) >= 40]
+
+def convert_date(news_date):
+    if news_date in [None, 'None', '']:
+        return datetime.now()
+    try:
+        return datetime.strptime(str(news_date), "%Y%m%d%H%M")
+    except ValueError:
+        # Nếu không đúng định dạng, vẫn trả về ngày hiện tại
+        return datetime.now()

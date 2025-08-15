@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Query
 from app.api.crawl import run_crawler
-from app.api.preprocess import check_and_update_duplicates
+from app.rag.indexer import insert_news_data
 from app.api.update_sentiment import update_sentiment
 from app.api.chatbot_engine import ask_bot, chat_bot, rounting, sentiment_news, sentiment_vn30f1m
 from app.api.chatbot_engine import chat_pipeline
-from app.db.postgre import insert_news
+from app.db.postgre import insert_into_news_table 
 from pydantic import BaseModel
 import requests, time, json
 from typing import List 
@@ -49,11 +49,11 @@ def run_pipeline(
         # # 1️. Crawl dữ liệu
         print("Bắt đầu Crawl dữ liệu...")
         all_data = run_crawler(crawl_source, days)
-        if all_data: insert_news(all_data)
+        if all_data: insert_into_news_table (all_data)
 
         # # 2️. Kiểm tra trùng lặp dữ liệu
         print("Bắt đầu kiểm tra trùng lặp dữ liệu...")
-        preprocess_result = check_and_update_duplicates(all_data, threshold)
+        preprocess_result = insert_news_data(all_data, threshold)
         print("Kiểm tra trùng lặp thành công!")
 
         # 3️. Cập nhật Sentiment Score

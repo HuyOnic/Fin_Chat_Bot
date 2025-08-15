@@ -1,28 +1,31 @@
-from app.db.postgre import get_last_news_id, update_status
 from app.rag.collections import COLLECTIONS
-from app.utils.chunking import chunking_document
-from datetime import datetime
-import uuid
+from app.rag._utils import get_files_in_directory, load_file_as_markdown, chunking, convert_date
+from app.db.postgre import get_last_news_id, update_status
 
-def convert_news_date(news_date):
-    if news_date in [None, 'None', '']:
-        return datetime.now()
-    try:
-        return datetime.strptime(str(news_date), "%Y%m%d%H%M")
-    except ValueError:
-        # Nếu không đúng định dạng, vẫn trả về ngày hiện tại
-        return datetime.now()
 
-def check_and_update_duplicates(all_data, threshold: float):
+def insert_stock_data(input_dir):
+    files = get_files_in_directory(input_dir)
+    for f in files:
+        if f.endswith(".pdf"):
+            file_name = f.split("/")[-1][:-4]
+            print(f"Processing file: {f}")
+            markdown_content = load_file_as_markdown(f)
+            chunks = chunking(markdown_content)
+            for chunk in chunks:  
+                COLLECTIONS["stock"].insert_data(["content", "source"], [chunk, file_name], [0, 1])
+
+
+def insert_news_data(all_data, threshold: float, all_db_data: False):
     if not all_data:
         print("Không có dữ liệu để kiểm tra")
         return {"message": "Không có dữ liệu để kiểm tra"}
     
     print(f"Bắt đầu kiểm tra trùng lặp (threshold={threshold})")
     
-    if isinstance(all_data[0], tuple):
-        all_data = [(row[0], row[1], convert_news_date(row[2]), row[3], row[4]) for row in all_data]
+    if all_db_data:
+        all_data = [(row[0], row[1], convert_date(row[2]), row[3], row[4]) for row in all_data]
     else:
+        # giả định trước đó đã add data vào database.
         len_data = len(all_data)
         id = get_last_news_id()
         if id is None:
@@ -44,8 +47,8 @@ def check_and_update_duplicates(all_data, threshold: float):
             source_domain = source.split("//")[1].split("/")[0]
         except:
             continue
-        # Chunking current document
-        chunks = chunking_document(current_content)
+   
+        chunks = chunking(current_content)
 
         for chunk_idx, chunk in enumerate(chunks):
             similar_articles = COLLECTIONS['news'].get_similar_vectors(chunk, top_k=3, threshold=threshold)
@@ -64,7 +67,6 @@ def check_and_update_duplicates(all_data, threshold: float):
                                                 payload_values=[[current_id, chunk, source_domain, current_date, status]],
                                                 embedding_indices=[1, 2])
 
-                # update_status(current_id, 1)
                 results.append({
                     "current_id": current_id,
                     "status": "saved_to_qdrant",

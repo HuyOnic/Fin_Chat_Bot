@@ -61,7 +61,7 @@ def create_news_table():
 
     
 # Thêm data vào bảng news sau khi crawl
-def insert_news(data_list):
+def insert_into_news_table (data_list):
     conn = get_pg_connection()
     cursor = conn.cursor()
     insert_query = '''
